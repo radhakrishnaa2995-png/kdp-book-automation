@@ -1,7 +1,7 @@
 name: Generate KDP Books
 
 on:
-  workflow_dispatch:   # 👈 THIS enables manual run button
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,7 +20,8 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    - name: Run Script
+    # 🔥 THIS IS THE MOST IMPORTANT STEP
+    - name: Run Python Script
       run: |
         python scripts/main.py
 
