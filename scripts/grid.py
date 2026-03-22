@@ -3,8 +3,8 @@ from __future__ import annotations
 import random
 from typing import Dict, Iterable, List, Tuple
 
-from scripts.puzzle import Puzzle, WordPlacement
-from scripts.puzzle_generator import can_place, create_empty_grid, generate_grid, place_words
+from .puzzle import Puzzle, WordPlacement
+from .puzzle_generator import can_place, create_empty_grid, generate_grid, place_words
 
 Coordinate = Tuple[int, int]
 
