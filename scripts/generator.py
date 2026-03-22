@@ -5,15 +5,28 @@ from grid import generate_puzzle
 
 
 # ✅ LOAD THEMES (FIXED)
-def load_themes():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    theme_path = os.path.join(base_dir, "..", "templates", "themes.json")
+# Normalize themes
+themes = load_themes()
+themes = {k.lower(): v for k, v in themes.items()}
 
-    if not os.path.exists(theme_path):
-        raise FileNotFoundError(f"themes.json not found at {theme_path}")
+theme_name = theme_name.strip().lower()
 
-    with open(theme_path, "r") as f:
-        return json.load(f)
+# 🔥 SMART MATCHING (NEW)
+if theme_name not in themes:
+    matched = None
+
+    for key in themes.keys():
+        if theme_name in key or key in theme_name:
+            matched = key
+            break
+
+    if matched:
+        print(f"⚠️ Using closest match: {matched}")
+        theme_name = matched
+    else:
+        raise ValueError(f"Theme '{theme_name}' not found. Available: {list(themes.keys())}")
+
+word_pool = themes[theme_name]
 
 
 # ✅ DIFFICULTY LOGIC
