@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scripts.layout_engine import (
+from .layout_engine import (
     PAGE_HEIGHT,
     PAGE_WIDTH,
     SAFE_MARGIN as MARGIN,
