@@ -24,7 +24,6 @@ from .layout_engine import (
 )
 from .puzzles import Puzzle
 
-
 @dataclass(frozen=True)
 class BookBuildResult:
     puzzles: List[Puzzle]
