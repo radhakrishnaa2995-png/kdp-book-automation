@@ -1,51 +1,30 @@
 from __future__ import annotations
 
+import random
 from typing import Dict, Iterable, List, Tuple
 
+from .puzzles import Puzzle, WordPlacement
 from .puzzle_generator import can_place, create_empty_grid, generate_grid, place_words
-from .puzzles import Coordinate, WordPlacement
 
-GridMatrix = List[List[str]]
-PlacementMap = Dict[str, List[Coordinate]]
+Coordinate = Tuple[int, int]
 
 
-def _to_mutable_grid(grid: Tuple[Tuple[str, ...], ...]) -> GridMatrix:
-    return [list(row) for row in grid]
 
-
-def _to_position_map(placements: Dict[str, WordPlacement]) -> PlacementMap:
-    return {
-        word: list(placement.positions)
-        for word, placement in placements.items()
+def generate_puzzle(words: Iterable[str], size: int, theme: str = "Word Search", seed: int | None = None):
+    puzzle = generate_grid(tuple(words), size=size, theme=theme, seed=seed)
+    positions: Dict[str, List[Coordinate]] = {
+        word: list(placement.positions) for word, placement in puzzle.placements.items()
     }
-
-
-def generate_puzzle(
-    words: Iterable[str],
-    size: int,
-    theme: str = "Word Search",
-    seed: int | None = None,
-) -> tuple[GridMatrix, PlacementMap]:
-    normalized_words = tuple(words)
-    if not normalized_words:
-        raise ValueError("At least one word is required to generate a puzzle.")
-
-    puzzle = generate_grid(
-        words=normalized_words,
-        size=size,
-        theme=theme,
-        seed=seed,
-    )
-    return _to_mutable_grid(puzzle.grid), _to_position_map(puzzle.placements)
+    return [list(row) for row in puzzle.grid], positions
 
 
 __all__ = [
-    "Coordinate",
-    "GridMatrix",
-    "PlacementMap",
+    "Puzzle",
+    "WordPlacement",
     "can_place",
     "create_empty_grid",
     "generate_grid",
     "generate_puzzle",
     "place_words",
+    "random",
 ]
