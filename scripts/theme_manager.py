@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-from theme_api import OPENROUTER_MODEL_ENV, fetch_themes, fetch_themes_from_openrouter
+from scripts.theme_api import OPENROUTER_MODEL_ENV, fetch_themes, fetch_themes_from_openrouter
 
 
 THEME_CATALOG: Dict[str, List[str]] = {
@@ -196,6 +196,7 @@ _DEFAULT_MANAGER = ThemeManager()
 def generate_unique_theme(manager: ThemeManager | None = None) -> str:
     manager = manager or _DEFAULT_MANAGER
     return manager.generate_unique_theme()
+
 
 
 def get_words_for_theme(
