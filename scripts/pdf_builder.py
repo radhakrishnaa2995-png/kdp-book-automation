@@ -10,8 +10,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
-from scripts.generator import GeneratedBook, generate_book
-from scripts.layout_engine import (
+from .generator import GeneratedBook, generate_book
+from .layout_engine import (
     CONTENT_BOTTOM,
     CONTENT_TOP,
     PAGE_WIDTH,
@@ -22,7 +22,7 @@ from scripts.layout_engine import (
     draw_solution_page,
     draw_word_list,
 )
-from scripts.puzzle import Puzzle
+from .puzzle import Puzzle
 
 
 @dataclass(frozen=True)
