@@ -1,14 +1,24 @@
 from generator import generate_book
+from pdf_builder import build_pdf
+
 
 def main():
     print("🔥 KDP BOOK GENERATION STARTED")
 
-    theme = "Animals"   # Change theme here
-    puzzles = 50        # Change number of puzzles here
+    # ✅ User inputs
+    theme = "Animals"   # You can still type "Animals"
+    puzzle_count = 50   # 25 / 50 / 75 / 100
 
-    file = generate_book(theme, puzzles)
+    # ✅ Generate puzzles
+    puzzles, solutions = generate_book(theme, puzzle_count)
 
-    print(f"✅ Book Generated Successfully: {file}")
+    # ✅ Output file name
+    output_file = f"{theme.replace(' ', '_')}_{puzzle_count}_puzzles.pdf"
+
+    # ✅ Build PDF
+    build_pdf(output_file, puzzles, solutions, theme)
+
+    print(f"✅ Book Generated Successfully: {output_file}")
 
 
 if __name__ == "__main__":
