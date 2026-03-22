@@ -3,24 +3,42 @@ from __future__ import annotations
 import random
 from typing import Dict, Iterable, List, Tuple
 
-from .puzzles import Puzzle, WordPlacement
-from .puzzle_generator import can_place, create_empty_grid, generate_grid, place_words
+# ✅ Import ONLY from puzzle_generator (NO puzzles.py import)
+from .puzzle_generator import (
+    can_place,
+    create_empty_grid,
+    generate_grid,
+    place_words,
+)
 
 Coordinate = Tuple[int, int]
 
 
+def generate_puzzle(
+    words: Iterable[str],
+    size: int,
+    theme: str = "Word Search",
+    seed: int | None = None,
+):
+    """
+    Generates a word search puzzle grid and returns:
+    - grid (2D list)
+    - positions of each word
+    """
 
-def generate_puzzle(words: Iterable[str], size: int, theme: str = "Word Search", seed: int | None = None):
     puzzle = generate_grid(tuple(words), size=size, theme=theme, seed=seed)
+
+    # Extract positions safely (no dependency on Puzzle class)
     positions: Dict[str, List[Coordinate]] = {
-        word: list(placement.positions) for word, placement in puzzle.placements.items()
+        word: list(placement.positions)
+        for word, placement in puzzle.placements.items()
     }
+
     return [list(row) for row in puzzle.grid], positions
 
 
+# ✅ Export only safe utilities (NO Puzzle / WordPlacement)
 __all__ = [
-    "Puzzle",
-    "WordPlacement",
     "can_place",
     "create_empty_grid",
     "generate_grid",
