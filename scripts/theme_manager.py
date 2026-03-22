@@ -92,13 +92,9 @@ class ThemeManager:
         self.known_words: set[str] = set()
         self.openrouter_api_key = self.openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
         self.openrouter_model = self.openrouter_model or os.getenv(OPENROUTER_MODEL_ENV, "openai/gpt-4o-mini")
-
-        if self.api_url or self.openrouter_api_key:
-            self.catalog = {}
-        else:
-            original_catalog = dict(self.catalog)
-            self.catalog = {}
-            self._validate_catalog(original_catalog)
+        original_catalog = dict(self.catalog)
+        self.catalog = {}
+        self._validate_catalog(original_catalog)
 
     def _register_theme(self, theme: str, words: List[str]) -> None:
         if theme in self.catalog or theme in self.used_themes:
@@ -129,27 +125,30 @@ class ThemeManager:
         if len(available) >= minimum_count:
             return
 
-        if self.api_url:
-            generated = fetch_themes(
-                api_url=self.api_url,
-                count=max(self.api_batch_size, minimum_count),
-                min_words=10,
-                max_words=12,
-                excluded_themes=self.used_themes | set(self.catalog.keys()),
-                excluded_words=self.used_words | self.known_words,
-                timeout=self.api_timeout,
-            )
-        else:
-            generated = fetch_themes_from_openrouter(
-                count=max(self.api_batch_size, minimum_count),
-                min_words=10,
-                max_words=12,
-                excluded_themes=self.used_themes | set(self.catalog.keys()),
-                excluded_words=self.used_words | self.known_words,
-                api_key=self.openrouter_api_key,
-                model=self.openrouter_model,
-                timeout=self.api_timeout,
-            )
+        try:
+            if self.api_url:
+                generated = fetch_themes(
+                    api_url=self.api_url,
+                    count=max(self.api_batch_size, minimum_count),
+                    min_words=10,
+                    max_words=12,
+                    excluded_themes=self.used_themes | set(self.catalog.keys()),
+                    excluded_words=self.used_words | self.known_words,
+                    timeout=self.api_timeout,
+                )
+            else:
+                generated = fetch_themes_from_openrouter(
+                    count=max(self.api_batch_size, minimum_count),
+                    min_words=10,
+                    max_words=12,
+                    excluded_themes=self.used_themes | set(self.catalog.keys()),
+                    excluded_words=self.used_words | self.known_words,
+                    api_key=self.openrouter_api_key,
+                    model=self.openrouter_model,
+                    timeout=self.api_timeout,
+                )
+        except Exception:
+            return
 
         for item in generated:
             self._register_theme(item.theme, item.words)
