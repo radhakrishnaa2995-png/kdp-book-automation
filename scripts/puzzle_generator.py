@@ -5,8 +5,7 @@ import string
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Sequence, Tuple
 
-Coordinate = Tuple[int, int]
-Direction = Tuple[int, int]
+from scripts.puzzle import Coordinate, Direction, Puzzle, WordPlacement
 
 ALL_DIRECTIONS: Tuple[Direction, ...] = (
     (0, 1),
@@ -24,28 +23,6 @@ REVERSE_DIRECTIONS = {(0, -1), (-1, 0), (-1, -1), (-1, 1), (1, -1)}
 
 
 @dataclass(frozen=True)
-class WordPlacement:
-    word: str
-    start: Coordinate
-    end: Coordinate
-    direction: Direction
-    positions: Tuple[Coordinate, ...]
-
-
-@dataclass(frozen=True)
-class Puzzle:
-    theme: str
-    grid: Tuple[Tuple[str, ...], ...]
-    words: Tuple[str, ...]
-    placements: Dict[str, WordPlacement]
-
-    @property
-    def signature(self) -> str:
-        rows = "|".join("".join(row) for row in self.grid)
-        return f"{self.theme}:{rows}:{','.join(self.words)}"
-
-
-@dataclass(frozen=True)
 class PlacementCandidate:
     direction: Direction
     positions: Tuple[Coordinate, ...]
@@ -54,6 +31,7 @@ class PlacementCandidate:
 
 def create_empty_grid(size: int) -> List[List[str]]:
     return [["" for _ in range(size)] for _ in range(size)]
+
 
 
 def can_place(grid: Sequence[Sequence[str]], word: str, row: int, col: int, direction: Direction) -> bool:
@@ -70,6 +48,7 @@ def can_place(grid: Sequence[Sequence[str]], word: str, row: int, col: int, dire
     return True
 
 
+
 def _occupied_neighbors(grid: Sequence[Sequence[str]], row: int, col: int) -> int:
     size = len(grid)
     count = 0
@@ -80,13 +59,16 @@ def _occupied_neighbors(grid: Sequence[Sequence[str]], row: int, col: int) -> in
     return count
 
 
+
 def _quadrant_index(size: int, row: int, col: int) -> int:
     half = size / 2
     return (2 if row >= half else 0) + (1 if col >= half else 0)
 
 
+
 def _direction_variety_bonus(direction: Direction, direction_counts: Dict[Direction, int]) -> float:
     return 2.25 / (1 + direction_counts.get(direction, 0))
+
 
 
 def _build_candidate(
@@ -123,6 +105,7 @@ def _build_candidate(
         + rng.random() * 0.2
     )
     return PlacementCandidate(direction=direction, positions=positions, score=score)
+
 
 
 def place_words(
@@ -162,6 +145,7 @@ def place_words(
     )
 
 
+
 def _fill_empty_cells(grid: List[List[str]], rng: random.Random) -> None:
     alphabet = string.ascii_uppercase
     for row in range(len(grid)):
@@ -170,11 +154,13 @@ def _fill_empty_cells(grid: List[List[str]], rng: random.Random) -> None:
                 grid[row][col] = rng.choice(alphabet)
 
 
+
 def _placement_mix_is_strong(placements: Iterable[WordPlacement]) -> bool:
     placements = list(placements)
     has_diagonal = any(item.direction in DIAGONAL_DIRECTIONS for item in placements)
     has_reverse = any(item.direction in REVERSE_DIRECTIONS for item in placements)
     return has_diagonal and has_reverse
+
 
 
 def generate_grid(
