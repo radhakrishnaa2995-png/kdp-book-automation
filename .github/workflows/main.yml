@@ -8,30 +8,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ✅ Checkout repo
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      # ✅ Setup Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
+      # ✅ Install dependencies
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
 
+      # ✅ Run script
       - name: Run Python Script
         run: |
           echo "🔥 SCRIPT IS RUNNING"
           python scripts/main.py
 
+      # ✅ Debug (see files generated)
       - name: Show Files
         run: |
-          echo "📂 FILES:"
+          echo "📂 FILES GENERATED:"
           ls -R
 
+      # ✅ Upload generated PDF (FIXED PATH)
       - name: Upload Output
         uses: actions/upload-artifact@v4
         with:
-          name: books
-          path: outputs/
+          name: kdp-books
+          path: output/
