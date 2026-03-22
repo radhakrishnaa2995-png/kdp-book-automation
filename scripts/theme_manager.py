@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-from scripts.theme_api import OPENROUTER_MODEL_ENV, fetch_themes, fetch_themes_from_openrouter
+from .theme_api import OPENROUTER_MODEL_ENV, fetch_themes, fetch_themes_from_openrouter
 
 
 THEME_CATALOG: Dict[str, List[str]] = {
