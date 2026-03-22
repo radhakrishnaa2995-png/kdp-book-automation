@@ -1,54 +1,44 @@
 from __future__ import annotations
-from typing import Dict, List, Tuple
 
-from .grid import generate_puzzle
+from dataclasses import dataclass
+from hashlib import sha1
+from typing import Dict, Tuple
 
 Coordinate = Tuple[int, int]
+Direction = Tuple[int, int]
 
 
+@dataclass(frozen=True)
 class WordPlacement:
-    def __init__(self, word: str, positions: List[Coordinate]):
-        self.word = word
-        self.positions = positions
+    word: str
+    start: Coordinate
+    end: Coordinate
+    direction: Direction
+    positions: Tuple[Coordinate, ...]
 
 
+@dataclass(frozen=True)
 class Puzzle:
-    def __init__(self, grid: List[List[str]], placements: Dict[str, List[Coordinate]]):
-        self.grid = grid
-        self.placements = placements
+    theme: str
+    grid: Tuple[Tuple[str, ...], ...]
+    words: Tuple[str, ...]
+    placements: Dict[str, WordPlacement]
+
+    @property
+    def signature(self) -> str:
+        normalized_grid = "/".join("".join(row) for row in self.grid)
+        normalized_words = ",".join(self.words)
+        normalized_paths = ";".join(
+            f"{word}:{placement.start}->{placement.end}"
+            for word, placement in sorted(self.placements.items())
+        )
+        payload = f"{self.theme}|{normalized_grid}|{normalized_words}|{normalized_paths}"
+        return sha1(payload.encode("utf-8")).hexdigest()
 
 
-def generate_word_search(
-    words,
-    size,
-    theme: str = "Word Search",
-    seed: int | None = None,
-):
-    """
-    Generates a word search puzzle and returns:
-    - grid (2D list)
-    - highlight positions (flattened list)
-    """
+def generate_word_search(words, size, theme: str = "Word Search", seed: int | None = None):
+    from .grid import generate_puzzle
 
-    grid, placements = generate_puzzle(
-        words,
-        size=size,
-        theme=theme,
-        seed=seed,
-    )
-
-    # Flatten all word positions for highlighting
-    highlight = [
-        position
-        for coords in placements.values()
-        for position in coords
-    ]
-
+    grid, placements = generate_puzzle(words, size=size, theme=theme, seed=seed)
+    highlight = [position for coords in placements.values() for position in coords]
     return grid, highlight
-
-
-__all__ = [
-    "Puzzle",
-    "WordPlacement",
-    "generate_word_search",
-]
