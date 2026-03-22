@@ -1,95 +1,65 @@
+from __future__ import annotations
+
 import random
-import json
-import os
-from grid import generate_puzzle
+from dataclasses import dataclass
+from typing import List, Sequence
+
+from puzzle_generator import Puzzle, generate_grid
+from theme_manager import ThemeManager, generate_unique_theme, get_words_for_theme
 
 
-# ✅ LOAD THEMES (DO NOT CALL THIS OUTSIDE)
-def load_themes():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    theme_path = os.path.join(base_dir, "..", "templates", "themes.json")
-
-    if not os.path.exists(theme_path):
-        raise FileNotFoundError(f"themes.json not found at {theme_path}")
-
-    with open(theme_path, "r") as f:
-        return json.load(f)
+@dataclass(frozen=True)
+class GeneratedBook:
+    puzzles: List[Puzzle]
+    solutions: List[Puzzle]
 
 
-# ✅ DIFFICULTY LOGIC
-def get_grid_size(index, total):
-    progress = index / total
+def get_grid_size(index: int, total: int, words: Sequence[str]) -> int:
+    progress = (index + 1) / max(total, 1)
+    preferred = 10 if progress <= 0.33 else 12 if progress <= 0.66 else 15
+    longest = max(len(word) for word in words)
+    density = sum(len(word) for word in words)
 
-    if progress < 0.3:
-        return 10  # EASY
-    elif progress < 0.7:
-        return 12  # MEDIUM
-    else:
-        return 15  # HARD
-
-
-# ✅ SELECT WORDS (10–15)
-def select_words(word_pool):
-    num_words = random.randint(10, 15)
-
-    if len(word_pool) < num_words:
-        num_words = len(word_pool)
-
-    words = random.sample(word_pool, num_words)
-    return [w.upper() for w in words]
+    for size in (10, 12, 15):
+        if size < max(preferred, longest):
+            continue
+        if density / float(size * size) <= 0.72:
+            return size
+    return 15
 
 
-# ✅ MAIN FUNCTION
-def generate_book(theme_name="Farm Animals", puzzle_count=25):
+def generate_book(puzzle_count: int = 24, seed: int | None = None) -> GeneratedBook:
+    manager = ThemeManager(seed=seed)
+    if puzzle_count > manager.theme_count():
+        raise ValueError(
+            f"Requested {puzzle_count} puzzles, but only {manager.theme_count()} unique themes are available."
+        )
 
-    print("📚 Loading themes...")
+    rng = random.Random(seed)
+    used_signatures: set[str] = set()
+    puzzles: List[Puzzle] = []
 
-    # 🔥 LOAD THEMES INSIDE FUNCTION (FIXED)
-    themes = load_themes()
+    for index in range(puzzle_count):
+        theme = generate_unique_theme(manager)
+        words = get_words_for_theme(theme, manager=manager)
+        size = get_grid_size(index, puzzle_count, words)
 
-    # Normalize keys
-    themes = {k.lower(): v for k, v in themes.items()}
-    theme_name = theme_name.strip().lower()
-
-    # 🔥 SMART MATCHING (FIXES 'Animals' vs 'Farm Animals')
-    if theme_name not in themes:
-        matched = None
-
-        for key in themes.keys():
-            if theme_name in key or key in theme_name:
-                matched = key
-                break
-
-        if matched:
-            print(f"⚠️ Using closest match: {matched}")
-            theme_name = matched
-        else:
-            raise ValueError(
-                f"Theme '{theme_name}' not found. Available: {list(themes.keys())}"
+        puzzle: Puzzle | None = None
+        for _ in range(18):
+            candidate = generate_grid(
+                words=words,
+                size=size,
+                theme=theme,
+                seed=rng.randint(0, 10_000_000),
             )
-
-    word_pool = themes[theme_name]
-
-    puzzles = []
-    solutions = []
-
-    print("🧩 Generating puzzles...")
-
-    for i in range(puzzle_count):
-        size = get_grid_size(i, puzzle_count)
-
-        for _ in range(10):  # retry for better placement
-            words = select_words(word_pool)
-            grid, solution = generate_puzzle(words, size)
-
-            if len(solution) >= max(5, len(words) - 2):
+            if candidate.signature not in used_signatures:
+                used_signatures.add(candidate.signature)
+                puzzle = candidate
                 break
 
-        puzzles.append((grid, words))
-        solutions.append((grid, solution))
+        if puzzle is None:
+            raise RuntimeError(f"Unable to generate a non-duplicate puzzle for theme '{theme}'.")
 
-        print(f"✅ Puzzle {i+1}/{puzzle_count} generated")
+        puzzles.append(puzzle)
 
-    print("🎉 All puzzles generated!")
-
-    return puzzles, solutions
+    return GeneratedBook(puzzles=puzzles, solutions=list(puzzles))
