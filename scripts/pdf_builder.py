@@ -22,7 +22,7 @@ from .layout_engine import (
     draw_solution_page,
     draw_word_list,
 )
-from .puzzle import Puzzle
+from .puzzles import Puzzle
 
 
 @dataclass(frozen=True)
