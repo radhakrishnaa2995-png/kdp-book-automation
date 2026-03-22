@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+      OPENROUTER_HTTP_REFERER: ${{ vars.OPENROUTER_HTTP_REFERER }}
+      OPENROUTER_APP_TITLE: ${{ vars.OPENROUTER_APP_TITLE }}
 
     steps:
       - name: Checkout repository
@@ -26,7 +29,7 @@ jobs:
       - name: Generate puzzle books
         run: |
           echo "Generating 20 KDP-ready word search books"
-          python scripts/main.py --output-dir output --prefix kdp_word_search
+          python -m scripts.main --output-dir output --prefix kdp_word_search
 
       - name: Show generated files
         run: |
