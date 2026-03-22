@@ -5,9 +5,9 @@ import secrets
 from dataclasses import dataclass
 from typing import Iterable, List, Sequence
 
-from scripts.puzzle import Puzzle
-from scripts.puzzle_generator import generate_grid
-from scripts.theme_manager import ThemeManager, generate_unique_theme, get_words_for_theme
+from .puzzle import Puzzle
+from .puzzle_generator import generate_grid
+from .theme_manager import ThemeManager, generate_unique_theme, get_words_for_theme
 
 
 @dataclass(frozen=True)
