@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
+from pathlib import Path
 from typing import List
 
-from pdf_builder import build_pdf, build_pdf_batch
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.pdf_builder import build_pdf, build_pdf_batch
 
 DEFAULT_PUZZLE_PLAN = "25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50"
+
 
 
 def parse_puzzle_plan(raw_plan: str) -> List[int]:
@@ -19,6 +25,7 @@ def parse_puzzle_plan(raw_plan: str) -> List[int]:
     if not values:
         raise ValueError("Puzzle plan cannot be empty.")
     return values
+
 
 
 def parse_args() -> argparse.Namespace:
@@ -53,6 +60,7 @@ def parse_args() -> argparse.Namespace:
         help="Optional OpenRouter model slug, e.g. openai/gpt-4o-mini.",
     )
     return parser.parse_args()
+
 
 
 def main() -> None:
