@@ -8,7 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      
+      OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+      OPENROUTER_HTTP_REFERER: ${{ vars.OPENROUTER_HTTP_REFERER }}
+      OPENROUTER_APP_TITLE: ${{ vars.OPENROUTER_APP_TITLE }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
