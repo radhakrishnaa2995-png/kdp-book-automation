@@ -1,23 +1,31 @@
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from layout import get_grid_layout
+
+# ✅ REGISTER CUSTOM FONT (VERY IMPORTANT)
+pdfmetrics.registerFont(
+    TTFont("KidFont", "assets/fonts/Fredoka.ttf")
+)
 
 WIDTH, HEIGHT = A4
 
 
 def draw_page_number(c, num):
-    c.setFont("Helvetica", 10)
+    c.setFont("KidFont", 10)
     c.drawCentredString(WIDTH / 2, 20, str(num))
 
 
 def draw_title_page(c, theme):
-    c.setFont("Helvetica-Bold", 36)
+    c.setFont("KidFont", 36)
     c.drawCentredString(WIDTH / 2, HEIGHT - 250, f"{theme}")
 
-    c.setFont("Helvetica", 18)
+    c.setFont("KidFont", 18)
     c.drawCentredString(WIDTH / 2, HEIGHT - 300, "Fun Puzzle Book for Kids")
 
+    # simple decorative elements
     c.circle(100, 700, 20, fill=1)
     c.circle(500, 700, 20, fill=1)
 
@@ -26,7 +34,7 @@ def draw_grid(c, grid, highlight=None):
     size = len(grid)
     cell, start_x, start_y = get_grid_layout(size)
 
-    c.setFont("Helvetica-Bold", cell * 0.5)
+    c.setFont("KidFont", cell * 0.5)
 
     for i in range(size):
         for j in range(size):
@@ -47,6 +55,8 @@ def draw_words(c, words):
     spacing = 150
     x_start = 80
     y = 120
+
+    c.setFont("KidFont", 12)
 
     for i, word in enumerate(words):
         col = i % cols
@@ -70,7 +80,7 @@ def create_pdf(file, theme, puzzles, solutions):
 
     # Puzzle Pages
     for i, (grid, words, level) in enumerate(puzzles):
-        c.setFont("Helvetica-Bold", 16)
+        c.setFont("KidFont", 16)
         c.drawString(50, HEIGHT - 50, f"Puzzle {i+1} ({level.upper()})")
 
         draw_grid(c, grid)
@@ -81,8 +91,9 @@ def create_pdf(file, theme, puzzles, solutions):
 
         c.showPage()
 
-    # Solutions
+    # Solutions Pages
     for i, (grid, words, highlight) in enumerate(solutions):
+        c.setFont("KidFont", 16)
         c.drawString(50, HEIGHT - 50, f"Solution {i+1}")
 
         draw_grid(c, grid, highlight)
