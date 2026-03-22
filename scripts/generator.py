@@ -1,26 +1,44 @@
 import os
-import sys
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-
-from puzzles import generate_word_search, generate_words, generate_sudoku
+from puzzles import generate_word_search
 from pdf_builder import create_pdf
 
-def generate_book(theme, index):
+
+def get_words(level):
+    if level == "easy":
+        return ["CAT", "DOG", "SUN", "BAT"]
+    elif level == "medium":
+        return ["TIGER", "MANGO", "ZEBRA"]
+    else:
+        return ["ELEPHANT", "KANGAROO", "RHINOCEROS"]
+
+
+def generate_book(theme, total):
     os.makedirs("outputs", exist_ok=True)
 
-    words = generate_words(theme)
-
     puzzles = []
+    solutions = []
 
-    # Add word search
-    for _ in range(3):
-        puzzles.append(generate_word_search(words))
+    for i in range(total):
 
-    # Add sudoku
-    puzzles.append(generate_sudoku())
+        if i < total * 0.3:
+            level = "easy"
+            size = 8
+        elif i < total * 0.7:
+            level = "medium"
+            size = 10
+        else:
+            level = "hard"
+            size = 12
 
-    filename = f"outputs/{theme.replace(' ', '_')}_{index}.pdf"
+        words = get_words(level)
 
-    create_pdf(filename, f"{theme} Fun Book", puzzles)
+        grid, highlight = generate_word_search(words, size)
+
+        puzzles.append((grid, words, size))
+        solutions.append((grid, words, size, highlight))
+
+    filename = f"outputs/{theme}.pdf"
+
+    create_pdf(filename, theme, puzzles, solutions)
 
     return filename
