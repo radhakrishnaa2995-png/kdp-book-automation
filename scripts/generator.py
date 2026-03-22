@@ -1,44 +1,36 @@
 import os
-from puzzles import generate_word_search
+from grid import generate_grid
 from pdf_builder import create_pdf
 
-
-def get_words(level):
-    if level == "easy":
-        return ["CAT", "DOG", "SUN", "BAT"]
-    elif level == "medium":
-        return ["TIGER", "MANGO", "ZEBRA"]
-    else:
-        return ["ELEPHANT", "KANGAROO", "RHINOCEROS"]
+def get_words(theme):
+    base = {
+        "Animals": ["CAT","DOG","LION","TIGER","ZEBRA"],
+        "Fruits": ["APPLE","MANGO","BANANA","GRAPE"],
+    }
+    return base.get(theme, ["FUN","PLAY","GAME"])
 
 
 def generate_book(theme, total):
-    os.makedirs("outputs", exist_ok=True)
-
     puzzles = []
     solutions = []
 
     for i in range(total):
-
         if i < total * 0.3:
-            level = "easy"
-            size = 8
+            size, level = 8, "easy"
         elif i < total * 0.7:
-            level = "medium"
-            size = 10
+            size, level = 10, "medium"
         else:
-            level = "hard"
-            size = 12
+            size, level = 12, "hard"
 
-        words = get_words(level)
+        words = get_words(theme)
+        grid, highlight = generate_grid(words, size)
 
-        grid, highlight = generate_word_search(words, size)
+        puzzles.append((grid, words, level))
+        solutions.append((grid, words, highlight))
 
-        puzzles.append((grid, words, size))
-        solutions.append((grid, words, size, highlight))
+    os.makedirs("output", exist_ok=True)
+    file = f"output/{theme}.pdf"
 
-    filename = f"outputs/{theme}.pdf"
+    create_pdf(file, theme, puzzles, solutions)
 
-    create_pdf(filename, theme, puzzles, solutions)
-
-    return filename
+    return file
