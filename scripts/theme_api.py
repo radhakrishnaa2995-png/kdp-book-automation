@@ -11,14 +11,15 @@ OPENROUTER_API_BASE = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_SECRET_NAME = "OPENROUTER_API_KEY"
 OPENROUTER_MODEL_ENV = "OPENROUTER_MODEL"
 OPENROUTER_API_BASE_ENV = "OPENROUTER_API_BASE"
-OPENROUTER_REFERER_ENV = "OPENROUTER_REFERER"
-OPENROUTER_TITLE_ENV = "OPENROUTER_TITLE"
+OPENROUTER_REFERER_ENV = "OPENROUTER_HTTP_REFERER"
+OPENROUTER_TITLE_ENV = "OPENROUTER_APP_TITLE"
 
 
 @dataclass(frozen=True)
 class ApiTheme:
     theme: str
     words: List[str]
+
 
 
 def _coerce_payload(payload: object) -> List[ApiTheme]:
@@ -38,6 +39,7 @@ def _coerce_payload(payload: object) -> List[ApiTheme]:
         clean_words = [word for word in words if isinstance(word, str)]
         themes.append(ApiTheme(theme=theme, words=clean_words))
     return themes
+
 
 
 def fetch_themes(
@@ -67,6 +69,7 @@ def fetch_themes(
         data = response.read().decode("utf-8")
     parsed = json.loads(data)
     return _coerce_payload(parsed)
+
 
 
 def fetch_themes_from_openrouter(
