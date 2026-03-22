@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scripts.grid import generate_puzzle
+from .grid import generate_puzzle
 
 
 
