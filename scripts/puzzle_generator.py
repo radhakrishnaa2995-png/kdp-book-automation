@@ -5,7 +5,7 @@ import string
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Sequence, Tuple
 
-from scripts.puzzle import Coordinate, Direction, Puzzle, WordPlacement
+from .puzzle import Coordinate, Direction, Puzzle, WordPlacement
 
 ALL_DIRECTIONS: Tuple[Direction, ...] = (
     (0, 1),
