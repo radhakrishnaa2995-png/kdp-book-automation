@@ -5,12 +5,16 @@ from grid import generate_puzzle
 
 
 # 📂 Load themes from JSON
-def load_themes():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    theme_path = os.path.join(base_dir, "..", "templates", "themes.json")
+themes = load_themes()
 
-    with open(theme_path, "r") as f:
-        return json.load(f)
+# Normalize everything to lowercase
+themes = {k.lower(): v for k, v in themes.items()}
+theme_name = theme_name.strip().lower()
+
+if theme_name not in themes:
+    raise ValueError(f"Theme '{theme_name}' not found")
+
+word_pool = themes[theme_name]
 
 
 # 🎯 Difficulty settings
