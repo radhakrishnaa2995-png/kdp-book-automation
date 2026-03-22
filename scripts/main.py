@@ -8,8 +8,9 @@ from typing import List
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from scripts.pdf_builder import build_pdf, build_pdf_batch
+    from scripts.pdf_builder import build_pdf, build_pdf_batch
+else:
+    from .pdf_builder import build_pdf, build_pdf_batch
 
 DEFAULT_PUZZLE_PLAN = "25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50"
 
