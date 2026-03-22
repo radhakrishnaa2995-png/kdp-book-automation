@@ -7,7 +7,7 @@ from typing import Iterable, List, Sequence
 
 from .puzzles import Puzzle
 from .puzzle_generator import generate_grid
-from .theme_manager import ThemeManager
+from .theme_manager import ThemeManager, generate_unique_theme, get_words_for_theme
 
 
 @dataclass(frozen=True)
@@ -16,6 +16,7 @@ class GeneratedBook:
     solutions: List[Puzzle]
     seed: int
     signature: str
+
 
 
 def get_grid_size(index: int, total: int, words: Sequence[str]) -> int:
@@ -32,8 +33,10 @@ def get_grid_size(index: int, total: int, words: Sequence[str]) -> int:
     return 15
 
 
+
 def _build_book_signature(puzzles: Iterable[Puzzle]) -> str:
     return "::".join(puzzle.signature for puzzle in puzzles)
+
 
 
 def _single_book(
@@ -55,8 +58,8 @@ def _single_book(
     puzzles: List[Puzzle] = []
 
     for index in range(puzzle_count):
-        theme = manager.generate_unique_theme()
-        words = manager.get_words_for_theme(theme)
+        theme = generate_unique_theme(manager)
+        words = get_words_for_theme(theme, manager=manager)
         size = get_grid_size(index, puzzle_count, words)
 
         puzzle: Puzzle | None = None
@@ -83,6 +86,7 @@ def _single_book(
         seed=seed,
         signature=_build_book_signature(puzzles),
     )
+
 
 
 def generate_book(
