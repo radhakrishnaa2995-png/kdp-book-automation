@@ -9,7 +9,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
-from puzzle_generator import Puzzle
+from scripts.puzzle import Puzzle
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 SAFE_MARGIN = 0.75 * inch
@@ -56,13 +56,16 @@ class PageLayout:
     page_number_y: float
 
 
+
 def _word_column_count(word_count: int) -> int:
     return 3 if word_count >= 10 else 2
+
 
 
 def _word_list_height(word_count: int, columns: int, line_height: float = 17.0) -> float:
     rows = ceil(word_count / columns)
     return 22 + rows * line_height
+
 
 
 def compute_page_layout(grid_size: int, word_count: int) -> PageLayout:
@@ -119,6 +122,7 @@ def compute_page_layout(grid_size: int, word_count: int) -> PageLayout:
     )
 
 
+
 def draw_header(pdf_canvas, title: str, layout: PageLayout, subtitle: str | None = None) -> None:
     pdf_canvas.setFillColor(colors.black)
     title_size = fit_title_size(title)
@@ -127,6 +131,7 @@ def draw_header(pdf_canvas, title: str, layout: PageLayout, subtitle: str | None
     if subtitle:
         pdf_canvas.setFont(BODY_FONT, 12)
         pdf_canvas.drawCentredString(PAGE_WIDTH / 2, layout.subtitle_y, subtitle)
+
 
 
 def draw_grid(pdf_canvas, puzzle: Puzzle, layout: PageLayout, highlight_paths: bool = False) -> None:
@@ -187,6 +192,7 @@ def draw_grid(pdf_canvas, puzzle: Puzzle, layout: PageLayout, highlight_paths: b
             pdf_canvas.drawCentredString(center_x, baseline_y, letter)
 
 
+
 def draw_word_list(pdf_canvas, words: Sequence[str], layout: PageLayout) -> None:
     words_layout = layout.words
     pdf_canvas.setFillColor(colors.HexColor("#111827"))
@@ -206,10 +212,12 @@ def draw_word_list(pdf_canvas, words: Sequence[str], layout: PageLayout) -> None
         pdf_canvas.drawString(x, y, word)
 
 
+
 def draw_page_number(pdf_canvas, page_number: int, layout: PageLayout) -> None:
     pdf_canvas.setFillColor(colors.HexColor("#4b5563"))
     pdf_canvas.setFont(BODY_FONT, 10)
     pdf_canvas.drawCentredString(PAGE_WIDTH / 2, layout.page_number_y, str(page_number))
+
 
 
 def draw_solution_page(pdf_canvas, puzzle: Puzzle, layout: PageLayout, page_number: int) -> None:
@@ -217,6 +225,7 @@ def draw_solution_page(pdf_canvas, puzzle: Puzzle, layout: PageLayout, page_numb
     draw_grid(pdf_canvas, puzzle, layout, highlight_paths=True)
     draw_word_list(pdf_canvas, puzzle.words, layout)
     draw_page_number(pdf_canvas, page_number, layout)
+
 
 
 def fit_title_size(text: str, max_size: float = 36, min_size: float = 28) -> float:
