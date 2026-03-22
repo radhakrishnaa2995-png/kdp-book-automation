@@ -1,9 +1,30 @@
-[
-  "Farm Animals",
-  "Fruits",
-  "Vegetables",
-  "School",
-  "Colors",
-  "Weather",
-  "Pets"
-]
+{
+  "farm animals": [
+    "cow", "goat", "sheep", "horse", "pig", "hen", "duck", "donkey", "buffalo", "chicken",
+    "turkey", "llama", "yak", "ox", "pony"
+  ],
+  "fruits": [
+    "apple", "banana", "mango", "orange", "grape", "peach", "pear", "plum", "kiwi", "melon",
+    "papaya", "cherry", "lemon", "lime", "guava"
+  ],
+  "vegetables": [
+    "carrot", "potato", "tomato", "onion", "cabbage", "spinach", "broccoli", "pepper", "radish",
+    "bean", "pea", "corn", "pumpkin", "garlic", "ginger"
+  ],
+  "school": [
+    "book", "pen", "pencil", "eraser", "teacher", "student", "desk", "board", "chalk", "bag",
+    "ruler", "notebook", "marker", "class", "lesson"
+  ],
+  "colors": [
+    "red", "blue", "green", "yellow", "purple", "orange", "pink", "brown", "black", "white",
+    "grey", "violet", "indigo", "gold", "silver"
+  ],
+  "weather": [
+    "rain", "sun", "cloud", "storm", "wind", "snow", "fog", "hail", "thunder", "lightning",
+    "drizzle", "breeze", "climate", "season", "sky"
+  ],
+  "pets": [
+    "dog", "cat", "rabbit", "hamster", "parrot", "fish", "turtle", "puppy", "kitten", "canary",
+    "guinea", "ferret", "lizard", "mouse", "bird"
+  ]
+}
