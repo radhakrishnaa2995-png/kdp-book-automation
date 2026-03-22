@@ -9,7 +9,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
-from .puzzle import Puzzle
+from .puzzles import Puzzle
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 SAFE_MARGIN = 0.75 * inch
