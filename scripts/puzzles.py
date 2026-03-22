@@ -1,32 +1,29 @@
-import random
-import string
+from __future__ import annotations
 
-def generate_word_search(words, size):
-    grid = [['' for _ in range(size)] for _ in range(size)]
-    highlight = []
+from dataclasses import dataclass
+from typing import Dict, Tuple
 
-    for word in words:
-        placed = False
-        while not placed:
-            row = random.randint(0, size-1)
-            col = random.randint(0, size-len(word))
+Coordinate = Tuple[int, int]
+Direction = Tuple[int, int]
 
-            try:
-                for i in range(len(word)):
-                    if grid[row][col+i] not in ('', word[i]):
-                        raise Exception
 
-                for i in range(len(word)):
-                    grid[row][col+i] = word[i]
-                    highlight.append((row, col+i))
+@dataclass(frozen=True)
+class WordPlacement:
+    word: str
+    start: Coordinate
+    end: Coordinate
+    direction: Direction
+    positions: Tuple[Coordinate, ...]
 
-                placed = True
-            except:
-                continue
 
-    for i in range(size):
-        for j in range(size):
-            if grid[i][j] == '':
-                grid[i][j] = random.choice(string.ascii_uppercase)
+@dataclass(frozen=True)
+class Puzzle:
+    theme: str
+    grid: Tuple[Tuple[str, ...], ...]
+    words: Tuple[str, ...]
+    placements: Dict[str, WordPlacement]
 
-    return grid, highlight
+    @property
+    def signature(self) -> str:
+        rows = "|".join("".join(row) for row in self.grid)
+        return f"{self.theme}:{rows}:{','.join(self.words)}"
