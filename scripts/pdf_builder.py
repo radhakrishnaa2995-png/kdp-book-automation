@@ -1,108 +1,80 @@
-from reportlab.pdfgen import canvas
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from typing import List
+
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from layout import *
-import random
+from reportlab.pdfgen import canvas
 
-WIDTH, HEIGHT = A4
-
-def draw_title_page(c, theme):
-    c.setFont("Helvetica-Bold", 36)
-    c.drawCentredString(WIDTH/2, HEIGHT/2 + 50, f"{theme} Word Search")
-
-    c.setFont("Helvetica", 18)
-    c.drawCentredString(WIDTH/2, HEIGHT/2, "Fun Puzzle Book for Kids")
-
-    c.showPage()
-
-
-def draw_grid(c, grid):
-    size = len(grid)
-    x, y, cell = get_grid_position(size)
-
-    c.setFont("Helvetica-Bold", int(cell * 0.5))
-
-    for r in range(size):
-        for col in range(size):
-            c.drawCentredString(
-                x + col * cell + cell/2,
-                y - r * cell,
-                grid[r][col]
-            )
+from generator import generate_book
+from layout_engine import (
+    CONTENT_BOTTOM,
+    CONTENT_TOP,
+    PAGE_WIDTH,
+    compute_page_layout,
+    draw_grid,
+    draw_header,
+    draw_page_number,
+    draw_solution_page,
+    draw_word_list,
+)
+from puzzle_generator import Puzzle
 
 
-def draw_words(c, words):
-    y = get_word_list_position()
-    x = 80
-
-    for i, word in enumerate(words):
-        c.roundRect(x, y, 100, 25, 8)
-        c.drawCentredString(x + 50, y + 8, word)
-
-        x += 120
-        if x > 400:
-            x = 80
-            y -= 40
+@dataclass(frozen=True)
+class BookBuildResult:
+    puzzles: List[Puzzle]
+    output_file: str
 
 
-def draw_solution(c, grid, solution):
-    size = len(grid)
-    x, y, cell = get_grid_position(size)
-
-    c.setFont("Helvetica-Bold", int(cell * 0.5))
-
-    for r in range(size):
-        for col in range(size):
-            highlight = False
-
-            for positions in solution.values():
-                if (r, col) in positions:
-                    highlight = True
-
-            if highlight:
-                c.setFillColor(colors.red)
-            else:
-                c.setFillColor(colors.black)
-
-            c.drawCentredString(
-                x + col * cell + cell/2,
-                y - r * cell,
-                grid[r][col]
-            )
+def _draw_solutions_divider(pdf_canvas, page_number: int) -> None:
+    pdf_canvas.setFillColor(colors.black)
+    pdf_canvas.setFont("Helvetica-Bold", 32)
+    pdf_canvas.drawCentredString(PAGE_WIDTH / 2, CONTENT_TOP - 50, "SOLUTIONS")
+    pdf_canvas.setFont("Helvetica", 13)
+    pdf_canvas.drawCentredString(
+        PAGE_WIDTH / 2,
+        CONTENT_TOP - 82,
+        "Each solution page matches its puzzle and highlights every hidden word.",
+    )
+    pdf_canvas.setStrokeColor(colors.HexColor("#9ca3af"))
+    pdf_canvas.setLineWidth(1)
+    pdf_canvas.line(PAGE_WIDTH / 2 - 120, CONTENT_TOP - 98, PAGE_WIDTH / 2 + 120, CONTENT_TOP - 98)
+    pdf_canvas.setFont("Helvetica", 10)
+    pdf_canvas.setFillColor(colors.HexColor("#4b5563"))
+    pdf_canvas.drawCentredString(PAGE_WIDTH / 2, CONTENT_BOTTOM + 6, str(page_number))
 
 
-def add_page_number(c, num):
-    c.setFont("Helvetica", 10)
-    c.drawCentredString(WIDTH/2, 20, str(num))
+def build_pdf(output_file: str, puzzle_count: int, seed: int | None = None) -> BookBuildResult:
+    os.makedirs(os.path.dirname(output_file) or ".", exist_ok=True)
+    book = generate_book(puzzle_count=puzzle_count, seed=seed)
 
+    pdf_canvas = canvas.Canvas(output_file, pagesize=A4)
+    pdf_canvas.setTitle("Word Search Puzzle Book")
+    pdf_canvas.setAuthor("OpenAI Codex")
+    pdf_canvas.setSubject("Amazon KDP-ready themed word search puzzle book")
 
-def build_pdf(filename, puzzles, solutions, theme):
-    c = canvas.Canvas(filename, pagesize=A4)
+    page_number = 1
+    for puzzle in book.puzzles:
+        layout = compute_page_layout(grid_size=len(puzzle.grid), word_count=len(puzzle.words))
+        draw_header(pdf_canvas, puzzle.theme, layout, subtitle="Word Search Puzzle")
+        draw_grid(pdf_canvas, puzzle, layout)
+        draw_word_list(pdf_canvas, puzzle.words, layout)
+        draw_page_number(pdf_canvas, page_number, layout)
+        pdf_canvas.showPage()
+        page_number += 1
 
-    draw_title_page(c, theme)
+    _draw_solutions_divider(pdf_canvas, page_number)
+    pdf_canvas.showPage()
+    page_number += 1
 
-    page = 1
+    for puzzle in book.solutions:
+        layout = compute_page_layout(grid_size=len(puzzle.grid), word_count=len(puzzle.words))
+        draw_solution_page(pdf_canvas, puzzle, layout, page_number)
+        pdf_canvas.showPage()
+        page_number += 1
 
-    for i, (grid, words) in enumerate(puzzles):
-        c.setFont("Helvetica-Bold", 18)
-        c.drawCentredString(WIDTH/2, HEIGHT - 80, f"Puzzle {i+1}")
-
-        draw_grid(c, grid)
-        draw_words(c, words)
-
-        add_page_number(c, page)
-        page += 1
-        c.showPage()
-
-    # SOLUTIONS
-    for i, (grid, sol) in enumerate(solutions):
-        c.setFont("Helvetica-Bold", 18)
-        c.drawCentredString(WIDTH/2, HEIGHT - 80, f"Solution {i+1}")
-
-        draw_solution(c, grid, sol)
-
-        add_page_number(c, page)
-        page += 1
-        c.showPage()
-
-    c.save()
+    pdf_canvas.save()
+    return BookBuildResult(puzzles=book.puzzles, output_file=output_file)
