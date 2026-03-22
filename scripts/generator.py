@@ -4,29 +4,16 @@ import os
 from grid import generate_puzzle
 
 
-# ✅ LOAD THEMES (FIXED)
-# Normalize themes
-themes = load_themes()
-themes = {k.lower(): v for k, v in themes.items()}
+# ✅ LOAD THEMES (DO NOT CALL THIS OUTSIDE)
+def load_themes():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    theme_path = os.path.join(base_dir, "..", "templates", "themes.json")
 
-theme_name = theme_name.strip().lower()
+    if not os.path.exists(theme_path):
+        raise FileNotFoundError(f"themes.json not found at {theme_path}")
 
-# 🔥 SMART MATCHING (NEW)
-if theme_name not in themes:
-    matched = None
-
-    for key in themes.keys():
-        if theme_name in key or key in theme_name:
-            matched = key
-            break
-
-    if matched:
-        print(f"⚠️ Using closest match: {matched}")
-        theme_name = matched
-    else:
-        raise ValueError(f"Theme '{theme_name}' not found. Available: {list(themes.keys())}")
-
-word_pool = themes[theme_name]
+    with open(theme_path, "r") as f:
+        return json.load(f)
 
 
 # ✅ DIFFICULTY LOGIC
@@ -41,11 +28,10 @@ def get_grid_size(index, total):
         return 15  # HARD
 
 
-# ✅ WORD SELECTION (10–15 words)
+# ✅ SELECT WORDS (10–15)
 def select_words(word_pool):
     num_words = random.randint(10, 15)
 
-    # prevent crash if list small
     if len(word_pool) < num_words:
         num_words = len(word_pool)
 
@@ -53,28 +39,46 @@ def select_words(word_pool):
     return [w.upper() for w in words]
 
 
-# ✅ MAIN BOOK GENERATOR
+# ✅ MAIN FUNCTION
 def generate_book(theme_name="Farm Animals", puzzle_count=25):
 
-    # 🔥 Load + normalize themes
-    themes = load_themes()
-    themes = {k.lower(): v for k, v in themes.items()}
+    print("📚 Loading themes...")
 
+    # 🔥 LOAD THEMES INSIDE FUNCTION (FIXED)
+    themes = load_themes()
+
+    # Normalize keys
+    themes = {k.lower(): v for k, v in themes.items()}
     theme_name = theme_name.strip().lower()
 
+    # 🔥 SMART MATCHING (FIXES 'Animals' vs 'Farm Animals')
     if theme_name not in themes:
-        raise ValueError(f"Theme '{theme_name}' not found. Available: {list(themes.keys())}")
+        matched = None
+
+        for key in themes.keys():
+            if theme_name in key or key in theme_name:
+                matched = key
+                break
+
+        if matched:
+            print(f"⚠️ Using closest match: {matched}")
+            theme_name = matched
+        else:
+            raise ValueError(
+                f"Theme '{theme_name}' not found. Available: {list(themes.keys())}"
+            )
 
     word_pool = themes[theme_name]
 
     puzzles = []
     solutions = []
 
+    print("🧩 Generating puzzles...")
+
     for i in range(puzzle_count):
         size = get_grid_size(i, puzzle_count)
 
-        # retry logic for better placement
-        for _ in range(10):
+        for _ in range(10):  # retry for better placement
             words = select_words(word_pool)
             grid, solution = generate_puzzle(words, size)
 
@@ -83,5 +87,9 @@ def generate_book(theme_name="Farm Animals", puzzle_count=25):
 
         puzzles.append((grid, words))
         solutions.append((grid, solution))
+
+        print(f"✅ Puzzle {i+1}/{puzzle_count} generated")
+
+    print("🎉 All puzzles generated!")
 
     return puzzles, solutions
