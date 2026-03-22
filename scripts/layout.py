@@ -1,19 +1,20 @@
-from reportlab.lib.units import inch
+from __future__ import annotations
 
-PAGE_WIDTH = 8.27 * inch
-PAGE_HEIGHT = 11.69 * inch
+from scripts.layout_engine import (
+    PAGE_HEIGHT,
+    PAGE_WIDTH,
+    SAFE_MARGIN as MARGIN,
+    compute_page_layout,
+)
 
-MARGIN = 0.7 * inch
 
-def get_grid_position(grid_size):
-    usable_width = PAGE_WIDTH - 2 * MARGIN
-    cell_size = usable_width / grid_size
 
-    grid_width = cell_size * grid_size
-    x_start = (PAGE_WIDTH - grid_width) / 2
-    y_start = PAGE_HEIGHT * 0.55
+def get_grid_position(grid_size: int, word_count: int = 12):
+    layout = compute_page_layout(grid_size, word_count)
+    return layout.grid.grid_x, layout.grid.grid_y, layout.grid.cell_size
 
-    return x_start, y_start, cell_size
 
-def get_word_list_position():
-    return PAGE_HEIGHT * 0.25
+
+def get_word_list_position(word_count: int = 12):
+    layout = compute_page_layout(12, word_count)
+    return layout.words.y
