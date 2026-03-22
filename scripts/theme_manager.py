@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import os
 import random
 import re
 from dataclasses import dataclass, field
 from typing import Dict, List
+
+from theme_api import OPENROUTER_MODEL_ENV, fetch_themes, fetch_themes_from_openrouter
 
 
 THEME_CATALOG: Dict[str, List[str]] = {
@@ -41,7 +44,7 @@ THEME_CATALOG: Dict[str, List[str]] = {
     "Music": ["ACCORDION", "BAGPIPE", "CELLO", "CLARINET", "DRUMMER", "FLUTE", "HARMONICA", "MANDOLIN", "PICCOLO", "SAXOPHONE", "TROMBONE", "UKULELE"],
     "Art Supplies": ["CANVAS", "CHARCOALSTICK", "EASEL", "GLITTER", "MARKER", "PAINTBRUSH", "PALETTE", "PASTEL", "SKETCHBOOK", "STENCIL", "WATERCOLOR", "YARN"],
     "Festivals": ["BUNTING", "CARNIVAL", "FIREWORK", "GARLAND", "LANTERN", "PARADE", "PINATA", "SPARKLER", "STREAMER", "TAMBOURINE", "TICKETBOOTH", "TRADITION"],
-    "Holidays": ["CHIMNEY", "GIFTWRAP", "MISTLETOE", "ORNAMENT", "PUMPKIN", "REINDEER", "SLEIGH", "SNOWFLAKE", "STOCKING", "TINSel", "VALENTINE", "WREATH"],
+    "Holidays": ["CHIMNEY", "GIFTWRAP", "MISTLETOE", "ORNAMENT", "PUMPKIN", "REINDEER", "SLEIGH", "SNOWFLAKE", "STOCKING", "TINSEL", "VALENTINE", "WREATH"],
     "Garden": ["COMPOST", "FLOWERBED", "GARDENHOSE", "GREENHOUSE", "HOSEPIPE", "MULCH", "PLANTER", "PRUNER", "SEEDLING", "SHOVEL", "TROWEL", "WHEELBARROW"],
     "Camping Gear": ["BINOCULARS", "CAMPFIRE", "COMPASS", "FLASHLIGHT", "HAMMOCK", "LANTERNPOST", "SLEEPINGBAG", "TARPAULIN", "TENTPEG", "THERMOS", "TRAILMAP", "WATERBOTTLE"],
     "Beach": ["BEACHTOWEL", "BUCKET", "CABANA", "DRIFTWOOD", "LIFEGUARD", "SANDCASTLE", "SEASHELL", "SHORELINE", "SUNSCREEN", "SURFBOARD", "SWIMRING", "UMBRELLASTAND"],
@@ -75,46 +78,100 @@ def _normalize_word(word: str) -> str:
 @dataclass
 class ThemeManager:
     seed: int | None = None
+    api_url: str | None = None
+    openrouter_api_key: str | None = None
+    openrouter_model: str | None = None
+    api_batch_size: int = 24
+    api_timeout: float = 30.0
     catalog: Dict[str, List[str]] = field(default_factory=lambda: {k: list(v) for k, v in THEME_CATALOG.items()})
 
     def __post_init__(self) -> None:
         self.rng = random.Random(self.seed)
         self.used_themes: set[str] = set()
         self.used_words: set[str] = set()
-        self._validate_catalog()
+        self.known_words: set[str] = set()
+        self.openrouter_api_key = self.openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
+        self.openrouter_model = self.openrouter_model or os.getenv(OPENROUTER_MODEL_ENV, "openai/gpt-4o-mini")
 
-    def _validate_catalog(self) -> None:
-        seen_words: dict[str, str] = {}
-        for theme, words in self.catalog.items():
-            if theme in self.used_themes:
-                raise ValueError(f"Duplicate theme name found: {theme}")
-            normalized = []
-            for word in words:
-                clean = _normalize_word(word)
-                if len(clean) < 3:
-                    raise ValueError(f"Word '{word}' in theme '{theme}' is too short.")
-                owner = seen_words.get(clean)
-                if owner:
-                    raise ValueError(
-                        f"Word '{clean}' is reused in both '{owner}' and '{theme}'."
-                    )
-                seen_words[clean] = theme
-                normalized.append(clean)
-            self.catalog[theme] = normalized
+        if self.api_url or self.openrouter_api_key:
+            self.catalog = {}
+        else:
+            original_catalog = dict(self.catalog)
+            self.catalog = {}
+            self._validate_catalog(original_catalog)
+
+    def _register_theme(self, theme: str, words: List[str]) -> None:
+        if theme in self.catalog or theme in self.used_themes:
+            return
+        normalized = []
+        for word in words:
+            clean = _normalize_word(word)
+            if len(clean) < 3:
+                return
+            if clean in self.known_words or clean in self.used_words:
+                return
+            normalized.append(clean)
+        if len(normalized) < 10:
+            return
+        self.catalog[theme] = normalized
+        self.known_words.update(normalized)
+
+    def _validate_catalog(self, catalog: Dict[str, List[str]]) -> None:
+        for theme, words in catalog.items():
+            self._register_theme(theme, words)
+        if not self.catalog:
+            raise ValueError("Theme catalog is empty after validation.")
+
+    def _ensure_dynamic_themes(self, minimum_count: int = 1) -> None:
+        if not (self.api_url or self.openrouter_api_key):
+            return
+        available = [theme for theme in self.catalog if theme not in self.used_themes]
+        if len(available) >= minimum_count:
+            return
+
+        if self.api_url:
+            generated = fetch_themes(
+                api_url=self.api_url,
+                count=max(self.api_batch_size, minimum_count),
+                min_words=10,
+                max_words=12,
+                excluded_themes=self.used_themes | set(self.catalog.keys()),
+                excluded_words=self.used_words | self.known_words,
+                timeout=self.api_timeout,
+            )
+        else:
+            generated = fetch_themes_from_openrouter(
+                count=max(self.api_batch_size, minimum_count),
+                min_words=10,
+                max_words=12,
+                excluded_themes=self.used_themes | set(self.catalog.keys()),
+                excluded_words=self.used_words | self.known_words,
+                api_key=self.openrouter_api_key,
+                model=self.openrouter_model,
+                timeout=self.api_timeout,
+            )
+
+        for item in generated:
+            self._register_theme(item.theme, item.words)
 
     def available_themes(self) -> List[str]:
+        self._ensure_dynamic_themes()
         remaining = [theme for theme in self.catalog if theme not in self.used_themes]
         return sorted(remaining)
 
     def generate_unique_theme(self) -> str:
+        self._ensure_dynamic_themes()
         available = self.available_themes()
         if not available:
-            raise ValueError("No unused themes remain. Reduce puzzle count or expand the catalog.")
+            raise ValueError(
+                "No unused themes remain. Provide a theme API URL, set OPENROUTER_API_KEY, or expand the local catalog."
+            )
         theme = self.rng.choice(available)
         self.used_themes.add(theme)
         return theme
 
     def get_words_for_theme(self, theme: str, min_words: int = 10, max_words: int = 12) -> List[str]:
+        self._ensure_dynamic_themes()
         if theme not in self.catalog:
             raise KeyError(f"Unknown theme: {theme}")
 
@@ -130,7 +187,7 @@ class ThemeManager:
         return sorted(selected)
 
     def theme_count(self) -> int:
-        return len(self.catalog)
+        return 1_000_000 if (self.api_url or self.openrouter_api_key) else len(self.catalog)
 
 
 _DEFAULT_MANAGER = ThemeManager()
