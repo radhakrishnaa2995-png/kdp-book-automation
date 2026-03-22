@@ -5,7 +5,7 @@ import secrets
 from dataclasses import dataclass
 from typing import Iterable, List, Sequence
 
-from .puzzles import generate_word_search
+from .puzzles import Puzzle
 from .puzzle_generator import generate_grid
 from .theme_manager import ThemeManager, generate_unique_theme, get_words_for_theme
 
