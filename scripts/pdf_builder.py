@@ -10,8 +10,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
-from generator import GeneratedBook, generate_book
-from layout_engine import (
+from scripts.generator import GeneratedBook, generate_book
+from scripts.layout_engine import (
     CONTENT_BOTTOM,
     CONTENT_TOP,
     PAGE_WIDTH,
@@ -22,7 +22,7 @@ from layout_engine import (
     draw_solution_page,
     draw_word_list,
 )
-from puzzle import Puzzle
+from scripts.puzzle import Puzzle
 
 
 @dataclass(frozen=True)
@@ -41,6 +41,7 @@ class BatchBuildResult:
     batch_seed: int
 
 
+
 def _draw_solutions_divider(pdf_canvas, page_number: int) -> None:
     pdf_canvas.setFillColor(colors.black)
     pdf_canvas.setFont("Helvetica-Bold", 32)
@@ -57,6 +58,7 @@ def _draw_solutions_divider(pdf_canvas, page_number: int) -> None:
     pdf_canvas.setFont("Helvetica", 10)
     pdf_canvas.setFillColor(colors.HexColor("#4b5563"))
     pdf_canvas.drawCentredString(PAGE_WIDTH / 2, CONTENT_BOTTOM + 6, str(page_number))
+
 
 
 def _render_book(book: GeneratedBook, output_file: str) -> BookBuildResult:
@@ -96,6 +98,7 @@ def _render_book(book: GeneratedBook, output_file: str) -> BookBuildResult:
     )
 
 
+
 def build_pdf(
     output_file: str,
     puzzle_count: int,
@@ -110,6 +113,7 @@ def build_pdf(
         openrouter_model=openrouter_model,
     )
     return _render_book(book=book, output_file=output_file)
+
 
 
 def build_pdf_batch(
