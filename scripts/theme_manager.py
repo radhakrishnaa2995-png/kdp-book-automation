@@ -3,8 +3,9 @@ from __future__ import annotations
 import random
 from typing import Dict, List
 
+
 # --------------------------------------------------
-# 🔹 BASE THEMES (HIGH-QUALITY CORE DATA)
+# 🔹 BASE THEMES (HIGH-QUALITY DATA)
 # --------------------------------------------------
 
 BASE_THEME_CATALOG: Dict[str, List[str]] = {
@@ -50,6 +51,7 @@ BASE_THEME_CATALOG: Dict[str, List[str]] = {
     ],
 }
 
+
 # --------------------------------------------------
 # 🔹 AUTO EXPAND TO 100 THEMES
 # --------------------------------------------------
@@ -64,7 +66,6 @@ def expand_catalog(base_catalog: Dict[str, List[str]], target_size: int = 100) -
         for theme, words in base_items:
             new_theme = f"{theme} {counter}"
 
-            # Slight variation in words (shuffle for uniqueness)
             new_words = words.copy()
             random.shuffle(new_words)
 
@@ -78,11 +79,12 @@ def expand_catalog(base_catalog: Dict[str, List[str]], target_size: int = 100) -
     return expanded
 
 
-# 🔥 FINAL CATALOG (100 THEMES)
+# 🔥 FINAL CATALOG
 THEME_CATALOG: Dict[str, List[str]] = expand_catalog(BASE_THEME_CATALOG, 100)
 
+
 # --------------------------------------------------
-# 🔹 THEME MANAGER (FAST + NO API)
+# 🔹 THEME MANAGER
 # --------------------------------------------------
 
 class ThemeManager:
@@ -91,6 +93,10 @@ class ThemeManager:
         self.catalog = THEME_CATALOG
         self.used_themes = set()
         self.used_words = set()
+
+    # ✅ FIXED (required by generator.py)
+    def theme_count(self) -> int:
+        return len(self.catalog)
 
     def generate_unique_theme(self) -> str:
         available = [t for t in self.catalog if t not in self.used_themes]
@@ -102,7 +108,13 @@ class ThemeManager:
         self.used_themes.add(theme)
         return theme
 
-    def get_words_for_theme(self, theme: str, min_words: int = 15, max_words: int = 20) -> List[str]:
+    def get_words_for_theme(
+        self,
+        theme: str,
+        min_words: int = 15,
+        max_words: int = 20,
+    ) -> List[str]:
+
         if theme not in self.catalog:
             raise KeyError(f"Unknown theme: {theme}")
 
@@ -112,11 +124,12 @@ class ThemeManager:
         selected = self.rng.sample(words, count)
 
         self.used_words.update(selected)
-        return sorted(selected)
+
+        return selected
 
 
 # --------------------------------------------------
-# 🔹 DEFAULT HELPERS
+# 🔹 GLOBAL HELPERS (USED BY GENERATOR)
 # --------------------------------------------------
 
 _DEFAULT_MANAGER = ThemeManager()
