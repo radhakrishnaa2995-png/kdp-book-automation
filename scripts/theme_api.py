@@ -119,6 +119,7 @@ def fetch_themes_from_openrouter(
             "word_rules": [
                 "Every word must be alphabetic only.",
                 "Use uppercase-friendly single tokens without punctuation.",
+                "Every word must be between 3 and 15 letters long.",
                 "Do not repeat excluded words.",
                 "Keep words related strongly to the theme.",
                 "Choose words that feel fresh for this run instead of defaulting to common catalog words.",
