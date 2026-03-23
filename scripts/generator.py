@@ -18,25 +18,32 @@ class GeneratedBook:
     signature: str
 
 
+GRID_SIZE_OPTIONS: tuple[int, ...] = (10, 12, 15, 18, 20)
 
-def get_grid_size(index: int, total: int, words: Sequence[str]) -> int:
+
+def get_grid_sizes(index: int, total: int, words: Sequence[str]) -> List[int]:
     progress = (index + 1) / max(total, 1)
     preferred = 10 if progress <= 0.33 else 12 if progress <= 0.66 else 15
     longest = max(len(word) for word in words)
     density = sum(len(word) for word in words)
 
-    for size in (10, 12, 15):
-        if size < max(preferred, longest):
-            continue
-        if density / float(size * size) <= 0.72:
-            return size
-    return 15
+    viable_sizes = [size for size in GRID_SIZE_OPTIONS if size >= max(preferred, longest)]
+    balanced_sizes = [
+        size
+        for size in viable_sizes
+        if density / float(size * size) <= 0.72
+    ]
+    if balanced_sizes:
+        return balanced_sizes
+    return viable_sizes or [max(longest, GRID_SIZE_OPTIONS[-1])]
 
+
+def get_grid_size(index: int, total: int, words: Sequence[str]) -> int:
+    return get_grid_sizes(index, total, words)[0]
 
 
 def _build_book_signature(puzzles: Iterable[Puzzle]) -> str:
     return "::".join(puzzle.signature for puzzle in puzzles)
-
 
 
 def _single_book(
@@ -60,19 +67,24 @@ def _single_book(
     for index in range(puzzle_count):
         theme = generate_unique_theme(manager)
         words = get_words_for_theme(theme, manager=manager)
-        size = get_grid_size(index, puzzle_count, words)
 
         puzzle: Puzzle | None = None
-        for _ in range(32):
-            candidate = generate_grid(
-                words=words,
-                size=size,
-                theme=theme,
-                seed=rng.randint(0, 10_000_000),
-            )
-            if candidate.signature not in used_signatures:
-                used_signatures.add(candidate.signature)
-                puzzle = candidate
+        for size in get_grid_sizes(index, puzzle_count, words):
+            for _ in range(16):
+                try:
+                    candidate = generate_grid(
+                        words=words,
+                        size=size,
+                        theme=theme,
+                        seed=rng.randint(0, 10_000_000),
+                    )
+                except RuntimeError:
+                    continue
+                if candidate.signature not in used_signatures:
+                    used_signatures.add(candidate.signature)
+                    puzzle = candidate
+                    break
+            if puzzle is not None:
                 break
 
         if puzzle is None:
@@ -86,7 +98,6 @@ def _single_book(
         seed=seed,
         signature=_build_book_signature(puzzles),
     )
-
 
 
 def generate_book(
