@@ -72,6 +72,7 @@ THEME_CATALOG: Dict[str, List[str]] = {
 }
 
 _GLOBAL_DYNAMIC_THEMES: Set[str] = set()
+MAX_THEME_WORD_LENGTH = 15
 
 
 def _normalize_word(word: str) -> str:
@@ -122,9 +123,11 @@ class ThemeManager:
         for word in words:
             clean = _normalize_word(word)
             if len(clean) < 3:
-                return
+                continue
+            if len(clean) > MAX_THEME_WORD_LENGTH:
+                continue
             if clean in self.known_words or clean in self.used_words:
-                return
+                continue
             normalized.append(clean)
         if len(normalized) < 10:
             return
