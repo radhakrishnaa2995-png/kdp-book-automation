@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import random
 import re
+import secrets
 from dataclasses import dataclass, field
 from typing import Dict, List, Set
 
@@ -85,6 +86,7 @@ class ThemeManager:
     openrouter_model: str | None = None
     api_batch_size: int = 24
     api_timeout: float = 30.0
+    allow_local_fallback: bool = False
     catalog: Dict[str, List[str]] = field(default_factory=lambda: {k: list(v) for k, v in THEME_CATALOG.items()})
 
     def __post_init__(self) -> None:
@@ -92,9 +94,20 @@ class ThemeManager:
         self.used_themes: set[str] = set()
         self.used_words: set[str] = set()
         self.known_words: set[str] = set()
+        explicit_model = self.openrouter_model or os.getenv(OPENROUTER_MODEL_ENV)
         self.openrouter_api_key = self.openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
-        self.openrouter_model = self.openrouter_model or os.getenv(OPENROUTER_MODEL_ENV, "openai/gpt-4o-mini")
+        self.dynamic_requested = bool(self.api_url or self.openrouter_api_key or explicit_model)
         self.dynamic_enabled = bool(self.api_url or self.openrouter_api_key)
+        if self.dynamic_requested and not self.dynamic_enabled:
+            raise ValueError(
+                "Dynamic theme generation was requested, but no theme API URL or OPENROUTER_API_KEY is configured."
+            )
+        self.openrouter_model = explicit_model or "openai/gpt-4o-mini"
+        self.uniqueness_token = (
+            f"seed-{self.seed}"
+            if self.seed is not None
+            else f"run-{secrets.token_hex(8)}"
+        )
         original_catalog = dict(self.catalog)
         self.catalog = {}
         if not self.dynamic_enabled:
@@ -141,8 +154,12 @@ class ThemeManager:
         if len(available) >= minimum_count:
             return
 
-        excluded_themes = self.used_themes | set(self.catalog.keys()) | _GLOBAL_DYNAMIC_THEMES
-        excluded_words = self.used_words | self.known_words
+        excluded_themes = self.used_themes | set(self.catalog.keys()) | _GLOBAL_DYNAMIC_THEMES | set(THEME_CATALOG.keys())
+        excluded_words = self.used_words | self.known_words | {
+            _normalize_word(word)
+            for words in THEME_CATALOG.values()
+            for word in words
+        }
 
         try:
             if self.api_url:
@@ -153,6 +170,7 @@ class ThemeManager:
                     max_words=12,
                     excluded_themes=excluded_themes,
                     excluded_words=excluded_words,
+                    uniqueness_token=self.uniqueness_token,
                     timeout=self.api_timeout,
                 )
             else:
@@ -164,11 +182,14 @@ class ThemeManager:
                     excluded_words=excluded_words,
                     api_key=self.openrouter_api_key,
                     model=self.openrouter_model,
+                    uniqueness_token=self.uniqueness_token,
                     timeout=self.api_timeout,
                 )
         except Exception:
-            self._activate_local_fallback()
-            return
+            if self.allow_local_fallback:
+                self._activate_local_fallback()
+                return
+            raise
 
         for item in generated:
             self._register_theme(item.theme, item.words)
