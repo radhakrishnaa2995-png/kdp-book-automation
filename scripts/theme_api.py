@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 from dataclasses import dataclass
 from typing import Iterable, List
 from urllib import error, request
@@ -56,6 +57,7 @@ def fetch_themes(
     max_words: int,
     excluded_themes: Iterable[str],
     excluded_words: Iterable[str],
+    uniqueness_token: str | None = None,
     timeout: float = 30.0,
 ) -> List[ApiTheme]:
     payload = {
@@ -64,6 +66,7 @@ def fetch_themes(
         "max_words": max_words,
         "excluded_themes": list(excluded_themes),
         "excluded_words": list(excluded_words),
+        "uniqueness_token": uniqueness_token or secrets.token_hex(8),
     }
     body = json.dumps(payload).encode("utf-8")
     http_request = request.Request(
@@ -87,6 +90,7 @@ def fetch_themes_from_openrouter(
     api_key: str | None = None,
     model: str | None = None,
     api_base: str | None = None,
+    uniqueness_token: str | None = None,
     timeout: float = 60.0,
 ) -> List[ApiTheme]:
     api_key = api_key or os.getenv(OPENROUTER_SECRET_NAME)
@@ -97,23 +101,27 @@ def fetch_themes_from_openrouter(
 
     model = model or os.getenv(OPENROUTER_MODEL_ENV, "openai/gpt-4o-mini")
     api_base = api_base or os.getenv(OPENROUTER_API_BASE_ENV, OPENROUTER_API_BASE)
+    uniqueness_token = uniqueness_token or secrets.token_hex(8)
 
     instruction = {
         "task": "Generate unique word-search themes.",
+        "uniqueness_token": uniqueness_token,
         "requirements": {
             "theme_count": count,
             "min_words_per_theme": min_words,
             "max_words_per_theme": max_words,
             "theme_rules": [
                 "Every theme title must be different.",
-                "Avoid generic repeats of excluded themes.",
+                "Avoid generic repeats of excluded themes and common catalog topics.",
                 "Theme titles should be kid-friendly and book-safe.",
+                "Invent fresh, specific concepts for this run instead of reusing common stock themes.",
             ],
             "word_rules": [
                 "Every word must be alphabetic only.",
                 "Use uppercase-friendly single tokens without punctuation.",
                 "Do not repeat excluded words.",
                 "Keep words related strongly to the theme.",
+                "Choose words that feel fresh for this run instead of defaulting to common catalog words.",
             ],
         },
         "excluded_themes": list(excluded_themes),
@@ -122,7 +130,7 @@ def fetch_themes_from_openrouter(
             "themes": [
                 {
                     "theme": "THEME NAME",
-                    "words": ["WORD1", "WORD2", "WORD3"],
+                    "words": ["WORD1", "WORD2", "WORD3"]
                 }
             ]
         },
@@ -177,7 +185,6 @@ def fetch_themes_from_openrouter(
             },
         },
     }
-
     fallback_body = {
         "model": model,
         "temperature": 1.15,
