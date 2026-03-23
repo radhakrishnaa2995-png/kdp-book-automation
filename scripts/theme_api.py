@@ -4,7 +4,7 @@ import json
 import os
 from dataclasses import dataclass
 from typing import Iterable, List
-from urllib import request
+from urllib import error, request
 
 
 OPENROUTER_API_BASE = "https://openrouter.ai/api/v1/chat/completions"
@@ -39,6 +39,15 @@ def _coerce_payload(payload: object) -> List[ApiTheme]:
         clean_words = [word for word in words if isinstance(word, str)]
         themes.append(ApiTheme(theme=theme, words=clean_words))
     return themes
+
+
+def _extract_json_payload(content: str) -> object:
+    content = content.strip()
+    if content.startswith("```"):
+        lines = content.splitlines()
+        if len(lines) >= 3:
+            content = "\n".join(lines[1:-1]).strip()
+    return json.loads(content)
 
 
 
@@ -122,7 +131,7 @@ def fetch_themes_from_openrouter(
         },
     }
 
-    body = {
+    strict_body = {
         "model": model,
         "temperature": 1.15,
         "messages": [
@@ -171,6 +180,27 @@ def fetch_themes_from_openrouter(
             },
         },
     }
+    fallback_body = {
+        "model": model,
+        "temperature": 1.15,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You create brand-new word-search themes and word lists. "
+                    "Return valid JSON only, with no markdown and no explanation."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"{json.dumps(instruction)}\n"
+                    "Return exactly one JSON object shaped like "
+                    '{"themes":[{"theme":"THEME NAME","words":["WORD1","WORD2","WORD3"]}]}.'
+                ),
+            },
+        ],
+    }
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -183,15 +213,23 @@ def fetch_themes_from_openrouter(
     if title:
         headers["X-Title"] = title
 
-    http_request = request.Request(
-        api_base,
-        data=json.dumps(body).encode("utf-8"),
-        headers=headers,
-        method="POST",
-    )
-    with request.urlopen(http_request, timeout=timeout) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+    def _send(body: dict) -> dict:
+        http_request = request.Request(
+            api_base,
+            data=json.dumps(body).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
+        with request.urlopen(http_request, timeout=timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    try:
+        payload = _send(strict_body)
+    except error.HTTPError as exc:
+        if exc.code not in {400, 404, 422}:
+            raise
+        payload = _send(fallback_body)
 
     content = payload["choices"][0]["message"]["content"]
-    parsed = json.loads(content)
+    parsed = _extract_json_payload(content)
     return _coerce_payload(parsed)
