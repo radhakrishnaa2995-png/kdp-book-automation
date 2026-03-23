@@ -21,7 +21,6 @@ class ApiTheme:
     words: List[str]
 
 
-
 def _coerce_payload(payload: object) -> List[ApiTheme]:
     if isinstance(payload, dict):
         payload = payload.get("themes", [])
@@ -48,7 +47,6 @@ def _extract_json_payload(content: str) -> object:
         if len(lines) >= 3:
             content = "\n".join(lines[1:-1]).strip()
     return json.loads(content)
-
 
 
 def fetch_themes(
@@ -78,7 +76,6 @@ def fetch_themes(
         data = response.read().decode("utf-8")
     parsed = json.loads(data)
     return _coerce_payload(parsed)
-
 
 
 def fetch_themes_from_openrouter(
@@ -125,7 +122,7 @@ def fetch_themes_from_openrouter(
             "themes": [
                 {
                     "theme": "THEME NAME",
-                    "words": ["WORD1", "WORD2", "WORD3"]
+                    "words": ["WORD1", "WORD2", "WORD3"],
                 }
             ]
         },
@@ -180,6 +177,7 @@ def fetch_themes_from_openrouter(
             },
         },
     }
+
     fallback_body = {
         "model": model,
         "temperature": 1.15,
