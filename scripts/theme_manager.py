@@ -126,6 +126,14 @@ class ThemeManager:
         if not self.catalog:
             raise ValueError("Theme catalog is empty after validation.")
 
+    def _activate_local_fallback(self) -> None:
+        if not self.dynamic_enabled:
+            return
+        self.dynamic_enabled = False
+        self.catalog = {}
+        self.known_words = set()
+        self._validate_catalog({key: list(value) for key, value in THEME_CATALOG.items()})
+
     def _ensure_dynamic_themes(self, minimum_count: int = 1) -> None:
         if not self.dynamic_enabled:
             return
@@ -136,27 +144,31 @@ class ThemeManager:
         excluded_themes = self.used_themes | set(self.catalog.keys()) | _GLOBAL_DYNAMIC_THEMES
         excluded_words = self.used_words | self.known_words
 
-        if self.api_url:
-            generated = fetch_themes(
-                api_url=self.api_url,
-                count=max(self.api_batch_size, minimum_count),
-                min_words=10,
-                max_words=12,
-                excluded_themes=excluded_themes,
-                excluded_words=excluded_words,
-                timeout=self.api_timeout,
-            )
-        else:
-            generated = fetch_themes_from_openrouter(
-                count=max(self.api_batch_size, minimum_count),
-                min_words=10,
-                max_words=12,
-                excluded_themes=excluded_themes,
-                excluded_words=excluded_words,
-                api_key=self.openrouter_api_key,
-                model=self.openrouter_model,
-                timeout=self.api_timeout,
-            )
+        try:
+            if self.api_url:
+                generated = fetch_themes(
+                    api_url=self.api_url,
+                    count=max(self.api_batch_size, minimum_count),
+                    min_words=10,
+                    max_words=12,
+                    excluded_themes=excluded_themes,
+                    excluded_words=excluded_words,
+                    timeout=self.api_timeout,
+                )
+            else:
+                generated = fetch_themes_from_openrouter(
+                    count=max(self.api_batch_size, minimum_count),
+                    min_words=10,
+                    max_words=12,
+                    excluded_themes=excluded_themes,
+                    excluded_words=excluded_words,
+                    api_key=self.openrouter_api_key,
+                    model=self.openrouter_model,
+                    timeout=self.api_timeout,
+                )
+        except Exception:
+            self._activate_local_fallback()
+            return
 
         for item in generated:
             self._register_theme(item.theme, item.words)
@@ -213,7 +225,6 @@ _DEFAULT_MANAGER = ThemeManager()
 def generate_unique_theme(manager: ThemeManager | None = None) -> str:
     manager = manager or _DEFAULT_MANAGER
     return manager.generate_unique_theme()
-
 
 
 def get_words_for_theme(
