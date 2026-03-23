@@ -29,8 +29,7 @@ jobs:
       - name: Generate puzzle books
         run: |
           echo "Generating 20 KDP-ready word search books"
-          python -m scripts.main --puzzle-plan "25,50,25,50,25,50,25,50,25,50" --output-dir output --prefix kdp_word_search
-          
+          python -m scripts.main --puzzle-plan "25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50" --output-dir output --prefix kdp_word_search
 
       - name: Show generated files
         run: |
