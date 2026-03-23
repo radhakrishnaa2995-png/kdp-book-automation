@@ -12,8 +12,7 @@ if __package__ in (None, ""):
 else:
     from .pdf_builder import build_pdf, build_pdf_batch
 
-DEFAULT_PUZZLE_PLAN = "25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50"
-
+DEFAULT_PUZZLE_PLAN = "25,50,25,50,25,50,25,50,25,50"
 
 
 def parse_puzzle_plan(raw_plan: str) -> List[int]:
