@@ -4,7 +4,7 @@ import os
 import random
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Set
 
 from .theme_api import OPENROUTER_MODEL_ENV, fetch_themes, fetch_themes_from_openrouter
 
@@ -70,6 +70,8 @@ THEME_CATALOG: Dict[str, List[str]] = {
     "Magic": ["CAULDRON", "ENCHANTMENT", "FAMILIAR", "POTION", "RUNE", "SPELLBOOK", "STARWAND", "TALISMAN", "WAND", "WHISPER", "WIZARD", "ZAP"],
 }
 
+_GLOBAL_DYNAMIC_THEMES: Set[str] = set()
+
 
 def _normalize_word(word: str) -> str:
     return re.sub(r"[^A-Z]", "", word.upper())
@@ -92,12 +94,16 @@ class ThemeManager:
         self.known_words: set[str] = set()
         self.openrouter_api_key = self.openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
         self.openrouter_model = self.openrouter_model or os.getenv(OPENROUTER_MODEL_ENV, "openai/gpt-4o-mini")
+        self.dynamic_enabled = bool(self.api_url or self.openrouter_api_key)
         original_catalog = dict(self.catalog)
         self.catalog = {}
-        self._validate_catalog(original_catalog)
+        if not self.dynamic_enabled:
+            self._validate_catalog(original_catalog)
 
     def _register_theme(self, theme: str, words: List[str]) -> None:
         if theme in self.catalog or theme in self.used_themes:
+            return
+        if self.dynamic_enabled and theme in _GLOBAL_DYNAMIC_THEMES:
             return
         normalized = []
         for word in words:
@@ -111,6 +117,8 @@ class ThemeManager:
             return
         self.catalog[theme] = normalized
         self.known_words.update(normalized)
+        if self.dynamic_enabled:
+            _GLOBAL_DYNAMIC_THEMES.add(theme)
 
     def _validate_catalog(self, catalog: Dict[str, List[str]]) -> None:
         for theme, words in catalog.items():
@@ -119,39 +127,46 @@ class ThemeManager:
             raise ValueError("Theme catalog is empty after validation.")
 
     def _ensure_dynamic_themes(self, minimum_count: int = 1) -> None:
-        if not (self.api_url or self.openrouter_api_key):
+        if not self.dynamic_enabled:
             return
         available = [theme for theme in self.catalog if theme not in self.used_themes]
         if len(available) >= minimum_count:
             return
 
-        try:
-            if self.api_url:
-                generated = fetch_themes(
-                    api_url=self.api_url,
-                    count=max(self.api_batch_size, minimum_count),
-                    min_words=10,
-                    max_words=12,
-                    excluded_themes=self.used_themes | set(self.catalog.keys()),
-                    excluded_words=self.used_words | self.known_words,
-                    timeout=self.api_timeout,
-                )
-            else:
-                generated = fetch_themes_from_openrouter(
-                    count=max(self.api_batch_size, minimum_count),
-                    min_words=10,
-                    max_words=12,
-                    excluded_themes=self.used_themes | set(self.catalog.keys()),
-                    excluded_words=self.used_words | self.known_words,
-                    api_key=self.openrouter_api_key,
-                    model=self.openrouter_model,
-                    timeout=self.api_timeout,
-                )
-        except Exception:
-            return
+        excluded_themes = self.used_themes | set(self.catalog.keys()) | _GLOBAL_DYNAMIC_THEMES
+        excluded_words = self.used_words | self.known_words
+
+        if self.api_url:
+            generated = fetch_themes(
+                api_url=self.api_url,
+                count=max(self.api_batch_size, minimum_count),
+                min_words=10,
+                max_words=12,
+                excluded_themes=excluded_themes,
+                excluded_words=excluded_words,
+                timeout=self.api_timeout,
+            )
+        else:
+            generated = fetch_themes_from_openrouter(
+                count=max(self.api_batch_size, minimum_count),
+                min_words=10,
+                max_words=12,
+                excluded_themes=excluded_themes,
+                excluded_words=excluded_words,
+                api_key=self.openrouter_api_key,
+                model=self.openrouter_model,
+                timeout=self.api_timeout,
+            )
 
         for item in generated:
             self._register_theme(item.theme, item.words)
+
+        refreshed = [theme for theme in self.catalog if theme not in self.used_themes]
+        if len(refreshed) < minimum_count:
+            raise RuntimeError(
+                "Dynamic theme generation did not return enough unique themes. "
+                "Check the API/OpenRouter configuration or increase the batch size."
+            )
 
     def available_themes(self) -> List[str]:
         self._ensure_dynamic_themes()
@@ -170,23 +185,26 @@ class ThemeManager:
         return theme
 
     def get_words_for_theme(self, theme: str, min_words: int = 10, max_words: int = 12) -> List[str]:
-        self._ensure_dynamic_themes()
+        if self.dynamic_enabled:
+            self._ensure_dynamic_themes()
         if theme not in self.catalog:
             raise KeyError(f"Unknown theme: {theme}")
 
-        pool = [word for word in self.catalog[theme] if word not in self.used_words]
+        pool = list(self.catalog[theme])
         if len(pool) < min_words:
             raise ValueError(
-                f"Theme '{theme}' does not have enough unused words for a puzzle."
+                f"Theme '{theme}' does not have enough words for a puzzle."
             )
 
-        target = min(len(pool), self.rng.randint(min_words, max_words))
+        target = min(len(pool), max_words)
+        if target > min_words:
+            target = self.rng.randint(min_words, target)
         selected = self.rng.sample(pool, target)
         self.used_words.update(selected)
         return sorted(selected)
 
     def theme_count(self) -> int:
-        return 1_000_000 if (self.api_url or self.openrouter_api_key) else len(self.catalog)
+        return 1_000_000 if self.dynamic_enabled else len(self.catalog)
 
 
 _DEFAULT_MANAGER = ThemeManager()
