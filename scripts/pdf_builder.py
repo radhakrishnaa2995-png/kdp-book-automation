@@ -16,13 +16,16 @@ from .layout_engine import (
     CONTENT_TOP,
     PAGE_WIDTH,
     compute_page_layout,
+    draw_page_background,
     draw_grid,
     draw_header,
     draw_page_number,
     draw_solution_page,
+    draw_theme_clipart,
     draw_word_list,
 )
 from .puzzles import Puzzle
+from .comfyui_client import ComfyUIClient
 
 
 @dataclass(frozen=True)
@@ -43,6 +46,7 @@ class BatchBuildResult:
 
 
 def _draw_solutions_divider(pdf_canvas, page_number: int) -> None:
+    draw_page_background(pdf_canvas)
     pdf_canvas.setFillColor(colors.black)
     pdf_canvas.setFont("Helvetica-Bold", 32)
     pdf_canvas.drawCentredString(PAGE_WIDTH / 2, CONTENT_TOP - 50, "SOLUTIONS")
@@ -61,7 +65,13 @@ def _draw_solutions_divider(pdf_canvas, page_number: int) -> None:
 
 
 
-def _render_book(book: GeneratedBook, output_file: str) -> BookBuildResult:
+def _render_book(
+    book: GeneratedBook,
+    output_file: str,
+    comfyui_url: str | None = None,
+    comfyui_workflow: str | None = None,
+    comfyui_checkpoint: str = "v1-5-pruned-emaonly.ckpt",
+) -> BookBuildResult:
     os.makedirs(os.path.dirname(output_file) or ".", exist_ok=True)
 
     pdf_canvas = canvas.Canvas(output_file, pagesize=A4)
@@ -70,8 +80,29 @@ def _render_book(book: GeneratedBook, output_file: str) -> BookBuildResult:
     pdf_canvas.setSubject("Amazon KDP-ready themed word search puzzle book")
 
     page_number = 1
+    comfyui_client = (
+        ComfyUIClient(
+            base_url=comfyui_url,
+            workflow_path=comfyui_workflow,
+            checkpoint_name=comfyui_checkpoint,
+        )
+        if comfyui_url
+        else None
+    )
+    comfyui_warning_shown = False
     for puzzle in book.puzzles:
         layout = compute_page_layout(grid_size=len(puzzle.grid), word_count=len(puzzle.words))
+        draw_page_background(pdf_canvas)
+        clipart_path = None
+        if comfyui_client:
+            try:
+                clipart_path = comfyui_client.render_theme_clipart(puzzle.theme)
+            except Exception as exc:
+                if not comfyui_warning_shown:
+                    print(f"⚠️ ComfyUI unavailable or workflow failed: {exc}")
+                    comfyui_warning_shown = True
+                clipart_path = None
+        draw_theme_clipart(pdf_canvas, clipart_path, layout)
         draw_header(pdf_canvas, puzzle.theme, layout, subtitle="Word Search Puzzle")
         draw_grid(pdf_canvas, puzzle, layout)
         draw_word_list(pdf_canvas, puzzle.words, layout)
@@ -85,6 +116,17 @@ def _render_book(book: GeneratedBook, output_file: str) -> BookBuildResult:
 
     for puzzle in book.solutions:
         layout = compute_page_layout(grid_size=len(puzzle.grid), word_count=len(puzzle.words))
+        draw_page_background(pdf_canvas)
+        clipart_path = None
+        if comfyui_client:
+            try:
+                clipart_path = comfyui_client.render_theme_clipart(puzzle.theme)
+            except Exception as exc:
+                if not comfyui_warning_shown:
+                    print(f"⚠️ ComfyUI unavailable or workflow failed: {exc}")
+                    comfyui_warning_shown = True
+                clipart_path = None
+        draw_theme_clipart(pdf_canvas, clipart_path, layout)
         draw_solution_page(pdf_canvas, puzzle, layout, page_number)
         pdf_canvas.showPage()
         page_number += 1
@@ -105,6 +147,9 @@ def build_pdf(
     seed: int | None = None,
     theme_api_url: str | None = None,
     openrouter_model: str | None = None,
+    comfyui_url: str | None = None,
+    comfyui_workflow: str | None = None,
+    comfyui_checkpoint: str = "v1-5-pruned-emaonly.ckpt",
 ) -> BookBuildResult:
     book = generate_book(
         puzzle_count=puzzle_count,
@@ -112,7 +157,13 @@ def build_pdf(
         theme_api_url=theme_api_url,
         openrouter_model=openrouter_model,
     )
-    return _render_book(book=book, output_file=output_file)
+    return _render_book(
+        book=book,
+        output_file=output_file,
+        comfyui_url=comfyui_url,
+        comfyui_workflow=comfyui_workflow,
+        comfyui_checkpoint=comfyui_checkpoint,
+    )
 
 
 
@@ -125,6 +176,9 @@ def build_pdf_batch(
     prefix: str = "kdp_word_search",
     theme_api_url: str | None = None,
     openrouter_model: str | None = None,
+    comfyui_url: str | None = None,
+    comfyui_workflow: str | None = None,
+    comfyui_checkpoint: str = "v1-5-pruned-emaonly.ckpt",
 ) -> BatchBuildResult:
     os.makedirs(output_dir, exist_ok=True)
 
@@ -160,7 +214,13 @@ def build_pdf_batch(
         used_page_signatures.update(puzzle.signature for puzzle in book.puzzles)
 
         filename = os.path.join(output_dir, f"{prefix}_{index + 1:02d}_{current_puzzle_count}p.pdf")
-        result = _render_book(book=book, output_file=filename)
+        result = _render_book(
+            book=book,
+            output_file=filename,
+            comfyui_url=comfyui_url,
+            comfyui_workflow=comfyui_workflow,
+            comfyui_checkpoint=comfyui_checkpoint,
+        )
         files.append(result.output_file)
         seeds.append(result.seed)
 
