@@ -46,7 +46,7 @@ class BatchBuildResult:
 
 
 def _draw_solutions_divider(pdf_canvas, page_number: int) -> None:
-    draw_page_background(pdf_canvas)
+    draw_page_background(pdf_canvas, variant=page_number)
     pdf_canvas.setFillColor(colors.black)
     pdf_canvas.setFont("Helvetica-Bold", 32)
     pdf_canvas.drawCentredString(PAGE_WIDTH / 2, CONTENT_TOP - 50, "SOLUTIONS")
@@ -92,7 +92,7 @@ def _render_book(
     comfyui_warning_shown = False
     for puzzle in book.puzzles:
         layout = compute_page_layout(grid_size=len(puzzle.grid), word_count=len(puzzle.words))
-        draw_page_background(pdf_canvas)
+        draw_page_background(pdf_canvas, variant=page_number)
         clipart_path = None
         if comfyui_client:
             try:
@@ -102,7 +102,7 @@ def _render_book(
                     print(f"⚠️ ComfyUI unavailable or workflow failed: {exc}")
                     comfyui_warning_shown = True
                 clipart_path = None
-        draw_theme_clipart(pdf_canvas, clipart_path, layout, theme_label=puzzle.theme)
+        draw_theme_clipart(pdf_canvas, clipart_path, layout)
         draw_header(pdf_canvas, puzzle.theme, layout, subtitle="Word Search Puzzle")
         draw_grid(pdf_canvas, puzzle, layout)
         draw_word_list(pdf_canvas, puzzle.words, layout)
@@ -116,7 +116,7 @@ def _render_book(
 
     for puzzle in book.solutions:
         layout = compute_page_layout(grid_size=len(puzzle.grid), word_count=len(puzzle.words))
-        draw_page_background(pdf_canvas)
+        draw_page_background(pdf_canvas, variant=page_number)
         clipart_path = None
         if comfyui_client:
             try:
@@ -126,7 +126,7 @@ def _render_book(
                     print(f"⚠️ ComfyUI unavailable or workflow failed: {exc}")
                     comfyui_warning_shown = True
                 clipart_path = None
-        draw_theme_clipart(pdf_canvas, clipart_path, layout, theme_label=puzzle.theme)
+        draw_theme_clipart(pdf_canvas, clipart_path, layout)
         draw_solution_page(pdf_canvas, puzzle, layout, page_number)
         pdf_canvas.showPage()
         page_number += 1
