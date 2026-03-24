@@ -102,7 +102,7 @@ def _render_book(
                     print(f"⚠️ ComfyUI unavailable or workflow failed: {exc}")
                     comfyui_warning_shown = True
                 clipart_path = None
-        draw_theme_clipart(pdf_canvas, clipart_path, layout)
+        draw_theme_clipart(pdf_canvas, clipart_path, layout, theme_label=puzzle.theme)
         draw_header(pdf_canvas, puzzle.theme, layout, subtitle="Word Search Puzzle")
         draw_grid(pdf_canvas, puzzle, layout)
         draw_word_list(pdf_canvas, puzzle.words, layout)
@@ -126,7 +126,7 @@ def _render_book(
                     print(f"⚠️ ComfyUI unavailable or workflow failed: {exc}")
                     comfyui_warning_shown = True
                 clipart_path = None
-        draw_theme_clipart(pdf_canvas, clipart_path, layout)
+        draw_theme_clipart(pdf_canvas, clipart_path, layout, theme_label=puzzle.theme)
         draw_solution_page(pdf_canvas, puzzle, layout, page_number)
         pdf_canvas.showPage()
         page_number += 1
