@@ -1,11 +1,11 @@
+import json
+import os
+
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 
-import json
-import os
-
-from core.comfyui_client import ComfyUIClient
+from app.comfyui_client import ComfyUIClient
 
 
 def draw_image(pdf, image_path):
@@ -23,28 +23,33 @@ def draw_image(pdf, image_path):
 def build_pdf(
     output_file="output.pdf",
     puzzle_count=10,
-    comfyui_url="http://127.0.0.1:8188"
+    comfyui_url="http://127.0.0.1:8188",
+    workflow_path="workflow.json"
 ):
-    print("Using ComfyUI:", comfyui_url)
-
-    pdf = canvas.Canvas(output_file, pagesize=letter)
+    print(f"Using ComfyUI: {comfyui_url}")
 
     # Load workflow
-    with open("workflow.json", "r") as f:
+    if not os.path.exists(workflow_path):
+        raise FileNotFoundError("workflow.json not found")
+
+    with open(workflow_path, "r") as f:
         workflow = json.load(f)
 
-    client = ComfyUIClient(base_url=comfyui_url)
+    client = ComfyUIClient(comfyui_url)
+
+    pdf = canvas.Canvas(output_file, pagesize=letter)
 
     for i in range(puzzle_count):
         prompt = f"Cute cartoon sticker, theme {i+1}, colorful, kids style"
 
-        print(f"Generating {i+1}...")
+        print(f"Generating image {i+1}...")
 
         try:
-            image_path = client.generate_image(workflow, prompt)
-            print("Image:", image_path)
+            # IMPORTANT: copy workflow each time
+            image_path = client.generate_image(workflow.copy(), prompt)
+            print("✔ Image:", image_path)
         except Exception as e:
-            print("❌ Failed:", e)
+            print("❌ Generation failed:", e)
             image_path = None
 
         draw_image(pdf, image_path)
@@ -53,4 +58,4 @@ def build_pdf(
         pdf.showPage()
 
     pdf.save()
-    print("✅ PDF created:", output_file)
+    print(f"✅ PDF created: {output_file}")
