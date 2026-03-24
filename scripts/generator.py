@@ -18,58 +18,36 @@ class GeneratedBook:
     signature: str
 
 
-GRID_SIZE_OPTIONS: tuple[int, ...] = (10, 12, 15, 18, 20)
 
-
-# --------------------------------------------------
-# 🔹 GRID SIZE LOGIC
-# --------------------------------------------------
-
-def get_grid_sizes(index: int, total: int, words: Sequence[str]) -> List[int]:
+def get_grid_size(index: int, total: int, words: Sequence[str]) -> int:
     progress = (index + 1) / max(total, 1)
-
     preferred = 10 if progress <= 0.33 else 12 if progress <= 0.66 else 15
-
     longest = max(len(word) for word in words)
     density = sum(len(word) for word in words)
 
-    viable_sizes = [size for size in GRID_SIZE_OPTIONS if size >= max(preferred, longest)]
-
-    balanced_sizes = [
-        size for size in viable_sizes
-        if density / float(size * size) <= 0.72
-    ]
-
-    return balanced_sizes or viable_sizes or [max(longest, GRID_SIZE_OPTIONS[-1])]
+    for size in (10, 12, 15):
+        if size < max(preferred, longest):
+            continue
+        if density / float(size * size) <= 0.72:
+            return size
+    return 15
 
 
-def get_grid_size(index: int, total: int, words: Sequence[str]) -> int:
-    return get_grid_sizes(index, total, words)[0]
-
-
-# --------------------------------------------------
-# 🔹 SIGNATURE
-# --------------------------------------------------
 
 def _build_book_signature(puzzles: Iterable[Puzzle]) -> str:
     return "::".join(puzzle.signature for puzzle in puzzles)
 
 
-# --------------------------------------------------
-# 🔹 SINGLE BOOK GENERATION
-# --------------------------------------------------
 
 def _single_book(
     puzzle_count: int,
     seed: int,
     blocked_page_signatures: set[str] | None = None,
+    theme_api_url: str | None = None,
+    openrouter_model: str | None = None,
 ) -> GeneratedBook:
-
     blocked_page_signatures = blocked_page_signatures or set()
-
-    # ✅ FIXED: removed api_url & model
-    manager = ThemeManager(seed=seed)
-
+    manager = ThemeManager(seed=seed, api_url=theme_api_url, openrouter_model=openrouter_model)
     if puzzle_count > manager.theme_count():
         raise ValueError(
             f"Requested {puzzle_count} puzzles, but only {manager.theme_count()} unique themes are available."
@@ -80,31 +58,21 @@ def _single_book(
     puzzles: List[Puzzle] = []
 
     for index in range(puzzle_count):
-
-        # ✅ Theme + words (no API)
         theme = generate_unique_theme(manager)
         words = get_words_for_theme(theme, manager=manager)
+        size = get_grid_size(index, puzzle_count, words)
 
         puzzle: Puzzle | None = None
-
-        for size in get_grid_sizes(index, puzzle_count, words):
-            for _ in range(16):
-                try:
-                    candidate = generate_grid(
-                        words=words,
-                        size=size,
-                        theme=theme,
-                        seed=rng.randint(0, 10_000_000),
-                    )
-                except RuntimeError:
-                    continue
-
-                if candidate.signature not in used_signatures:
-                    used_signatures.add(candidate.signature)
-                    puzzle = candidate
-                    break
-
-            if puzzle is not None:
+        for _ in range(32):
+            candidate = generate_grid(
+                words=words,
+                size=size,
+                theme=theme,
+                seed=rng.randint(0, 10_000_000),
+            )
+            if candidate.signature not in used_signatures:
+                used_signatures.add(candidate.signature)
+                puzzle = candidate
                 break
 
         if puzzle is None:
@@ -120,9 +88,6 @@ def _single_book(
     )
 
 
-# --------------------------------------------------
-# 🔹 PUBLIC BOOK GENERATOR
-# --------------------------------------------------
 
 def generate_book(
     puzzle_count: int = 24,
@@ -130,32 +95,26 @@ def generate_book(
     blocked_page_signatures: set[str] | None = None,
     blocked_book_signatures: set[str] | None = None,
     max_attempts: int = 24,
+    theme_api_url: str | None = None,
+    openrouter_model: str | None = None,
 ) -> GeneratedBook:
-
     blocked_book_signatures = blocked_book_signatures or set()
-
-    # ✅ Random seed if not provided
     base_seed = seed if seed is not None else secrets.randbits(63)
     seed_rng = random.Random(base_seed)
 
     for attempt in range(max_attempts):
-
-        book_seed = (
-            base_seed
-            if seed is not None and attempt == 0
-            else seed_rng.randrange(1, 2**63)
-        )
-
+        book_seed = base_seed if seed is not None and attempt == 0 else seed_rng.randrange(1, 2**63)
         book = _single_book(
             puzzle_count=puzzle_count,
             seed=book_seed,
             blocked_page_signatures=blocked_page_signatures,
+            theme_api_url=theme_api_url,
+            openrouter_model=openrouter_model,
         )
-
         if book.signature not in blocked_book_signatures:
             return book
 
     raise RuntimeError(
         "Unable to generate a unique book after multiple attempts. "
-        "Increase themes or reduce puzzle count."
+        "Increase the theme catalog or reduce the number of requested PDFs/puzzles."
     )
