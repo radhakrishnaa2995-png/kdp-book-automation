@@ -23,7 +23,7 @@ CONTENT_HEIGHT = CONTENT_TOP - CONTENT_BOTTOM
 TITLE_FONT = "Helvetica-Bold"
 BODY_FONT = "Helvetica"
 GRID_FONT = "Courier-Bold"
-PAGE_BACKGROUND = colors.HexColor("#f8f4ea")
+PAGE_BACKGROUND = colors.HexColor("#f2ead8")
 
 
 @dataclass(frozen=True)
@@ -226,10 +226,7 @@ def draw_page_number(pdf_canvas, page_number: int, layout: PageLayout) -> None:
 
 
 
-def draw_theme_clipart(pdf_canvas, image_path: str | None, layout: PageLayout) -> None:
-    if not image_path:
-        return
-
+def draw_theme_clipart(pdf_canvas, image_path: str | None, layout: PageLayout, theme_label: str | None = None) -> None:
     size = min(88.0, layout.grid.box_size * 0.16)
     top_y = layout.title_y - 12
     bottom_y = layout.words.y + 2
@@ -239,6 +236,24 @@ def draw_theme_clipart(pdf_canvas, image_path: str | None, layout: PageLayout) -
         (CONTENT_LEFT - 6, bottom_y),
         (CONTENT_RIGHT - size + 6, bottom_y),
     ]
+    if not image_path:
+        badge_text = (theme_label or "WORD SEARCH").upper()[:2]
+        palette = [
+            colors.HexColor("#d97706"),
+            colors.HexColor("#7c3aed"),
+            colors.HexColor("#0f766e"),
+            colors.HexColor("#be185d"),
+        ]
+        for (x, y), fill in zip(positions, palette):
+            pdf_canvas.setFillColor(fill)
+            pdf_canvas.setStrokeColor(colors.white)
+            pdf_canvas.setLineWidth(1.2)
+            pdf_canvas.roundRect(x, y, size, size, 12, stroke=1, fill=1)
+            pdf_canvas.setFillColor(colors.white)
+            pdf_canvas.setFont(BODY_FONT, max(16, size * 0.24))
+            pdf_canvas.drawCentredString(x + size / 2, y + size * 0.42, badge_text)
+        return
+
     for x, y in positions:
         pdf_canvas.drawImage(image_path, x, y, width=size, height=size, preserveAspectRatio=True, mask="auto")
 
