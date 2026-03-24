@@ -39,13 +39,11 @@
     }
   },
   "3": {
-    "inputs": {
-      "text": "prompt",
-      "clip": [
-        "1",
-        1
-      ]
-    },
+  "inputs": {
+    "text": "{{prompt}}",
+    "clip": ["1", 1]
+    }
+  },
     "class_type": "CLIPTextEncode",
     "_meta": {
       "title": "CLIP Text Encode (Prompt)"
