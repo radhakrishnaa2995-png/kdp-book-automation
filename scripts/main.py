@@ -1,76 +1,36 @@
-import argparse
+import sys
 import os
-from pdf_builder import build_pdf
 
+# ✅ Fix import path (VERY IMPORTANT)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-def validate_comfyui(url: str):
-    """Check if ComfyUI server is running"""
-    import requests
-    try:
-        res = requests.get(url)
-        return res.status_code == 200
-    except Exception:
-        return False
+import argparse
+from core.pdf_builder import build_pdf
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate KDP Puzzle Book with AI Stickers"
-    )
+    parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "--output",
-        type=str,
-        default="output.pdf",
-        help="Output PDF file name"
-    )
-
-    parser.add_argument(
-        "--count",
-        type=int,
-        default=10,
-        help="Number of puzzle pages"
-    )
-
-    parser.add_argument(
-        "--comfyui",
-        type=str,
-        default="http://127.0.0.1:8188",
-        help="ComfyUI server URL"
-    )
-
-    parser.add_argument(
-        "--workflow",
-        type=str,
-        default="workflow.json",
-        help="Path to workflow JSON file"
-    )
+    parser.add_argument("--output", default="output.pdf")
+    parser.add_argument("--count", type=int, default=10)
+    parser.add_argument("--comfyui", default="http://127.0.0.1:8188")
 
     args = parser.parse_args()
 
-    # ✅ Check workflow file
-    if not os.path.exists(args.workflow):
-        print(f"❌ ERROR: Workflow file not found: {args.workflow}")
+    # Check workflow exists
+    if not os.path.exists("workflow.json"):
+        print("❌ workflow.json not found")
         return
 
-    # ✅ Check ComfyUI server
-    print("🔍 Checking ComfyUI server...")
-    if not validate_comfyui(args.comfyui):
-        print("❌ ERROR: ComfyUI is not running.")
-        print("👉 Start it using: python main.py (inside ComfyUI folder)")
-        return
+    print("🚀 Starting generation...")
 
-    print("✅ ComfyUI is running")
-
-    # ✅ Generate PDF
-    print("🚀 Starting PDF generation...")
     build_pdf(
         output_file=args.output,
         puzzle_count=args.count,
         comfyui_url=args.comfyui
     )
 
-    print("🎉 DONE! Your PDF is ready.")
+    print("🎉 Done!")
 
 
 if __name__ == "__main__":
