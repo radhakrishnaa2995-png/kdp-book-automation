@@ -15,6 +15,7 @@ else:
 DEFAULT_PUZZLE_PLAN = "25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50"
 
 
+
 def parse_puzzle_plan(raw_plan: str) -> List[int]:
     values = []
     for item in raw_plan.split(","):
@@ -27,18 +28,55 @@ def parse_puzzle_plan(raw_plan: str) -> List[int]:
     return values
 
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate KDP-ready themed word search puzzle PDFs.")
-    parser.add_argument("--puzzle-plan", default=DEFAULT_PUZZLE_PLAN)
+    parser.add_argument(
+        "--puzzle-plan",
+        default=DEFAULT_PUZZLE_PLAN,
+        help=(
+            "Comma-separated puzzle counts per PDF. Default creates 20 PDFs total: "
+            "10 books with 25 puzzles and 10 books with 50 puzzles in alternating order."
+        ),
+    )
     parser.add_argument("--seed", type=int, default=None, help="Optional seed. Leave unset for a fresh batch every run.")
-    parser.add_argument("--output-dir", default="output")
-    parser.add_argument("--prefix", default="kdp_word_search")
-    parser.add_argument("--theme-api-url", default=None)
-    parser.add_argument("--openrouter-model", default=None)
-    parser.add_argument("--comfyui-url", default=None)
-    parser.add_argument("--comfyui-workflow", default=None)
-    parser.add_argument("--comfyui-checkpoint", default="v1-5-pruned-emaonly.ckpt")
+    parser.add_argument(
+        "--output-dir",
+        default="output",
+        help="Directory where generated PDFs will be saved.",
+    )
+    parser.add_argument(
+        "--prefix",
+        default="kdp_word_search",
+        help="Base filename prefix for generated PDFs.",
+    )
+    parser.add_argument(
+        "--theme-api-url",
+        default=None,
+        help="Optional HTTP endpoint that returns fresh themes/words for every run.",
+    )
+    parser.add_argument(
+        "--openrouter-model",
+        default=None,
+        help="Optional OpenRouter model slug, e.g. openai/gpt-4o-mini.",
+    )
+    parser.add_argument(
+        "--comfyui-url",
+        default=None,
+        help="Optional ComfyUI base URL (e.g. http://127.0.0.1:8188) for decorative theme clipart without API keys.",
+    )
+    parser.add_argument(
+        "--comfyui-workflow",
+        default=None,
+        help="Optional path to a ComfyUI workflow JSON. Use {{prompt}} placeholder where theme prompt should be inserted.",
+    )
+    parser.add_argument(
+        "--comfyui-checkpoint",
+        default="v1-5-pruned-emaonly.ckpt",
+        help="Checkpoint name for default ComfyUI workflow (ignored when --comfyui-workflow is provided).",
+    )
     return parser.parse_args()
+
 
 
 def main() -> None:
