@@ -15,7 +15,6 @@ else:
 DEFAULT_PUZZLE_PLAN = "25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50,25,50"
 
 
-
 def parse_puzzle_plan(raw_plan: str) -> List[int]:
     values = []
     for item in raw_plan.split(","):
@@ -28,45 +27,29 @@ def parse_puzzle_plan(raw_plan: str) -> List[int]:
     return values
 
 
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate KDP-ready themed word search puzzle PDFs.")
-    parser.add_argument(
-        "--puzzle-plan",
-        default=DEFAULT_PUZZLE_PLAN,
-        help=(
-            "Comma-separated puzzle counts per PDF. Default creates 20 PDFs total: "
-            "10 books with 25 puzzles and 10 books with 50 puzzles in alternating order."
-        ),
-    )
-    parser.add_argument("--seed", type=int, default=None, help="Optional seed. Leave unset for a fresh batch every run.")
-    parser.add_argument(
-        "--output-dir",
-        default="output",
-        help="Directory where generated PDFs will be saved.",
-    )
-    parser.add_argument(
-        "--prefix",
-        default="kdp_word_search",
-        help="Base filename prefix for generated PDFs.",
-    )
-    parser.add_argument(
-        "--theme-api-url",
-        default=None,
-        help="Optional HTTP endpoint that returns fresh themes/words for every run.",
-    )
-    parser.add_argument(
-        "--openrouter-model",
-        default=None,
-        help="Optional OpenRouter model slug, e.g. openai/gpt-4o-mini.",
-    )
+    parser.add_argument("--puzzle-plan", default=DEFAULT_PUZZLE_PLAN)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--output-dir", default="output")
+    parser.add_argument("--prefix", default="kdp_word_search")
+    parser.add_argument("--theme-api-url", default=None)
+    parser.add_argument("--openrouter-model", default=None)
+    parser.add_argument("--comfyui-url", default=None)
+    parser.add_argument("--comfyui-workflow", default=None)
+    parser.add_argument("--comfyui-checkpoint", default="v1-5-pruned-emaonly.ckpt")
     return parser.parse_args()
-
 
 
 def main() -> None:
     args = parse_args()
     puzzle_counts = parse_puzzle_plan(args.puzzle_plan)
+    comfyui_workflow = args.comfyui_workflow
+    if comfyui_workflow is None:
+        local_workflow = Path(__file__).resolve().parent / "comfyui_workflow.json"
+        if local_workflow.exists():
+            comfyui_workflow = str(local_workflow)
+            print(f"ℹ️ Using local ComfyUI workflow: {comfyui_workflow}")
 
     if len(puzzle_counts) == 1:
         output_file = os.path.join(args.output_dir, f"{args.prefix}_01_{puzzle_counts[0]}p.pdf")
@@ -76,6 +59,9 @@ def main() -> None:
             seed=args.seed,
             theme_api_url=args.theme_api_url,
             openrouter_model=args.openrouter_model,
+            comfyui_url=args.comfyui_url,
+            comfyui_workflow=comfyui_workflow,
+            comfyui_checkpoint=args.comfyui_checkpoint,
         )
         print(f"✅ Generated 1 unique PDF with {puzzle_counts[0]} puzzles")
         print(f"✅ PDF saved to: {result.output_file}")
@@ -88,11 +74,11 @@ def main() -> None:
         prefix=args.prefix,
         theme_api_url=args.theme_api_url,
         openrouter_model=args.openrouter_model,
+        comfyui_url=args.comfyui_url,
+        comfyui_workflow=comfyui_workflow,
+        comfyui_checkpoint=args.comfyui_checkpoint,
     )
     print(f"✅ Generated {len(batch.files)} unique PDFs")
-    print(f"✅ Batch seed: {batch.batch_seed}")
-    for path, book_seed, puzzle_count in zip(batch.files, batch.seeds, batch.puzzle_counts):
-        print(f"✅ {path} ({puzzle_count} puzzles, seed={book_seed})")
 
 
 if __name__ == "__main__":
