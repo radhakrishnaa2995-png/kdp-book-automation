@@ -30,7 +30,7 @@ def parse_puzzle_plan(raw_plan: str) -> List[int]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate KDP-ready themed word search puzzle PDFs.")
     parser.add_argument("--puzzle-plan", default=DEFAULT_PUZZLE_PLAN)
-    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--seed", type=int, default=None, help="Optional seed. Leave unset for a fresh batch every run.")
     parser.add_argument("--output-dir", default="output")
     parser.add_argument("--prefix", default="kdp_word_search")
     parser.add_argument("--theme-api-url", default=None)
@@ -79,6 +79,9 @@ def main() -> None:
         comfyui_checkpoint=args.comfyui_checkpoint,
     )
     print(f"✅ Generated {len(batch.files)} unique PDFs")
+    print(f"✅ Batch seed: {batch.batch_seed}")
+    for path, book_seed, puzzle_count in zip(batch.files, batch.seeds, batch.puzzle_counts):
+        print(f"✅ {path} ({puzzle_count} puzzles, seed={book_seed})")
 
 
 if __name__ == "__main__":
