@@ -23,6 +23,7 @@ CONTENT_HEIGHT = CONTENT_TOP - CONTENT_BOTTOM
 TITLE_FONT = "Helvetica-Bold"
 BODY_FONT = "Helvetica"
 GRID_FONT = "Courier-Bold"
+PAGE_BACKGROUND = colors.HexColor("#f8f4ea")
 
 
 @dataclass(frozen=True)
@@ -123,6 +124,11 @@ def compute_page_layout(grid_size: int, word_count: int) -> PageLayout:
 
 
 
+def draw_page_background(pdf_canvas) -> None:
+    pdf_canvas.setFillColor(PAGE_BACKGROUND)
+    pdf_canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
+
+
 def draw_header(pdf_canvas, title: str, layout: PageLayout, subtitle: str | None = None) -> None:
     pdf_canvas.setFillColor(colors.black)
     title_size = fit_title_size(title)
@@ -218,6 +224,23 @@ def draw_page_number(pdf_canvas, page_number: int, layout: PageLayout) -> None:
     pdf_canvas.setFont(BODY_FONT, 10)
     pdf_canvas.drawCentredString(PAGE_WIDTH / 2, layout.page_number_y, str(page_number))
 
+
+
+def draw_theme_clipart(pdf_canvas, image_path: str | None, layout: PageLayout) -> None:
+    if not image_path:
+        return
+
+    size = min(88.0, layout.grid.box_size * 0.16)
+    top_y = layout.title_y - 12
+    bottom_y = layout.words.y + 2
+    positions = [
+        (CONTENT_LEFT - 6, top_y),
+        (CONTENT_RIGHT - size + 6, top_y),
+        (CONTENT_LEFT - 6, bottom_y),
+        (CONTENT_RIGHT - size + 6, bottom_y),
+    ]
+    for x, y in positions:
+        pdf_canvas.drawImage(image_path, x, y, width=size, height=size, preserveAspectRatio=True, mask="auto")
 
 
 def draw_solution_page(pdf_canvas, puzzle: Puzzle, layout: PageLayout, page_number: int) -> None:
