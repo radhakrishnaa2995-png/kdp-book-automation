@@ -4,7 +4,7 @@ import json
 import os
 from dataclasses import dataclass
 from typing import Iterable, List
-from urllib import error, request
+from urllib import request
 
 
 OPENROUTER_API_BASE = "https://openrouter.ai/api/v1/chat/completions"
@@ -19,6 +19,7 @@ OPENROUTER_TITLE_ENV = "OPENROUTER_APP_TITLE"
 class ApiTheme:
     theme: str
     words: List[str]
+
 
 
 def _coerce_payload(payload: object) -> List[ApiTheme]:
@@ -39,14 +40,6 @@ def _coerce_payload(payload: object) -> List[ApiTheme]:
         themes.append(ApiTheme(theme=theme, words=clean_words))
     return themes
 
-
-def _extract_json_payload(content: str) -> object:
-    content = content.strip()
-    if content.startswith("```"):
-        lines = content.splitlines()
-        if len(lines) >= 3:
-            content = "\n".join(lines[1:-1]).strip()
-    return json.loads(content)
 
 
 def fetch_themes(
@@ -76,6 +69,7 @@ def fetch_themes(
         data = response.read().decode("utf-8")
     parsed = json.loads(data)
     return _coerce_payload(parsed)
+
 
 
 def fetch_themes_from_openrouter(
@@ -122,13 +116,13 @@ def fetch_themes_from_openrouter(
             "themes": [
                 {
                     "theme": "THEME NAME",
-                    "words": ["WORD1", "WORD2", "WORD3"],
+                    "words": ["WORD1", "WORD2", "WORD3"]
                 }
             ]
         },
     }
 
-    strict_body = {
+    body = {
         "model": model,
         "temperature": 1.15,
         "messages": [
@@ -178,28 +172,6 @@ def fetch_themes_from_openrouter(
         },
     }
 
-    fallback_body = {
-        "model": model,
-        "temperature": 1.15,
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You create brand-new word-search themes and word lists. "
-                    "Return valid JSON only, with no markdown and no explanation."
-                ),
-            },
-            {
-                "role": "user",
-                "content": (
-                    f"{json.dumps(instruction)}\n"
-                    "Return exactly one JSON object shaped like "
-                    '{"themes":[{"theme":"THEME NAME","words":["WORD1","WORD2","WORD3"]}]}.'
-                ),
-            },
-        ],
-    }
-
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -211,23 +183,15 @@ def fetch_themes_from_openrouter(
     if title:
         headers["X-Title"] = title
 
-    def _send(body: dict) -> dict:
-        http_request = request.Request(
-            api_base,
-            data=json.dumps(body).encode("utf-8"),
-            headers=headers,
-            method="POST",
-        )
-        with request.urlopen(http_request, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
-
-    try:
-        payload = _send(strict_body)
-    except error.HTTPError as exc:
-        if exc.code not in {400, 404, 422}:
-            raise
-        payload = _send(fallback_body)
+    http_request = request.Request(
+        api_base,
+        data=json.dumps(body).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    with request.urlopen(http_request, timeout=timeout) as response:
+        payload = json.loads(response.read().decode("utf-8"))
 
     content = payload["choices"][0]["message"]["content"]
-    parsed = _extract_json_payload(content)
+    parsed = json.loads(content)
     return _coerce_payload(parsed)
