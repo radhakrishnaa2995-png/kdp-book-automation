@@ -9,22 +9,22 @@ class ComfyUIClient:
         self.client_id = str(uuid.uuid4())
 
     def generate_image(self, workflow: dict, prompt_text: str) -> str:
-        # Inject prompt
+        # Inject dynamic prompt
         for node in workflow.values():
             if "inputs" in node and "text" in node["inputs"]:
                 if node["inputs"]["text"] == "{{prompt}}":
                     node["inputs"]["text"] = prompt_text
 
         # Send request
-        res = requests.post(
+        response = requests.post(
             f"{self.base_url}/prompt",
             json={"prompt": workflow, "client_id": self.client_id}
         )
 
-        if res.status_code != 200:
-            raise RuntimeError(res.text)
+        if response.status_code != 200:
+            raise RuntimeError(f"ComfyUI error: {response.text}")
 
-        prompt_id = res.json()["prompt_id"]
+        prompt_id = response.json()["prompt_id"]
 
         # Wait for result
         for _ in range(60):
@@ -47,4 +47,4 @@ class ComfyUIClient:
 
             time.sleep(0.5)
 
-        raise RuntimeError("Image generation timeout")
+        raise RuntimeError("Timeout: Image not generated")
