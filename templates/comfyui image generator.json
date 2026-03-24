@@ -1,107 +1,86 @@
 {
-  "1": {
+  "3": {
+    "class_type": "KSampler",
     "inputs": {
-      "ckpt_name": "v1-5-pruned-emaonly.safetensors"
-    },
-    "class_type": "CheckpointLoaderSimple",
-    "_meta": {
-      "title": "Load Checkpoint"
-    }
-  },
-  "2": {
-    "inputs": {
-      "seed": 171255521923215,
+      "seed": 123456789,
       "steps": 20,
-      "cfg": 8,
+      "cfg": 7,
       "sampler_name": "euler",
-      "scheduler": "simple",
+      "scheduler": "normal",
       "denoise": 1,
       "model": [
-        "1",
+        "4",
         0
       ],
       "positive": [
-        "3",
+        "6",
         0
       ],
       "negative": [
-        "4",
+        "7",
         0
       ],
       "latent_image": [
         "5",
         0
       ]
-    },
-    "class_type": "KSampler",
-    "_meta": {
-      "title": "KSampler"
-    }
-  },
-  "3": {
-    "inputs": {
-      "text": "\"text\": \" $json.prompt \"",
-      "clip": [
-        "1",
-        1
-      ]
-    },
-    "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
     }
   },
   "4": {
+    "class_type": "CheckpointLoaderSimple",
     "inputs": {
-      "text": "",
-      "clip": [
-        "1",
-        1
-      ]
-    },
-    "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
+      "ckpt_name": "v1-5-pruned-emaonly.ckpt"
     }
   },
   "5": {
-    "inputs": {
-      "width": 512,
-      "height": 512,
-      "batch_size": 1
-    },
     "class_type": "EmptyLatentImage",
-    "_meta": {
-      "title": "Empty Latent Image"
+    "inputs": {
+      "width": 384,
+      "height": 384,
+      "batch_size": 1
     }
   },
   "6": {
+    "class_type": "CLIPTextEncode",
     "inputs": {
-      "samples": [
-        "2",
-        0
-      ],
-      "vae": [
-        "1",
-        2
+      "text": "{{prompt}}",
+      "clip": [
+        "4",
+        1
       ]
-    },
-    "class_type": "VAEDecode",
-    "_meta": {
-      "title": "VAE Decode"
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "blurry, text, watermark, logo, frame",
+      "clip": [
+        "4",
+        1
+      ]
     }
   },
   "8": {
+    "class_type": "VAEDecode",
     "inputs": {
-      "filename_prefix": "ComfyUI",
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "kdp_theme",
       "images": [
-        "6",
+        "8",
         0
       ]
-    },
-    "class_type": "SaveImage",
-    "_meta": {
-      "title": "Save Image"
     }
   }
 }
